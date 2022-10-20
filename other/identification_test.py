@@ -37,16 +37,71 @@ class picture():
         self.mask_tokushu, self.masked_img_tokushu, stats_tokushu = self.detection(self.tokushu_hsv_min, self.tokushu_hsv_max)
         self.mask_shu, self.masked_img_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
         self.mask_hane, self.masked_img_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
+
+        cv2.imshow("tokushu", self.masked_img_tokushu)
         
+        offset = 50
+        grade_area = []
+        
+        for i_cherry, row_cherry in enumerate(stats_cherry):
+
+            c_left = row_cherry[cv2.CC_STAT_LEFT]-offset
+            c_right = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]+offset
+            c_top = row_cherry[cv2.CC_STAT_TOP]-offset
+            c_bottom = row_cherry[cv2.CC_STAT_TOP]+row_cherry[cv2.CC_STAT_HEIGHT]+offset
+
+            p = 0
+            toku_area = 0
+            shu_area = 0
+            hane_area = 0
+            area = [toku_area, shu_area, hane_area]
+            TOKU = 0
+            SHU = 1
+            HANE = 2
+
+            for stats in [stats_tokushu, stats_shu, stats_hane]:
+
+                # さくらんぼ領域内に赤色領域があれば面積を足す
+                for i, row in enumerate(stats):
+                    r_left = row[cv2.CC_STAT_LEFT]
+                    r_right = row[cv2.CC_STAT_LEFT] + row[cv2.CC_STAT_WIDTH]
+                    r_top = row[cv2.CC_STAT_TOP]
+                    r_bottom = row[cv2.CC_STAT_TOP] + row[cv2.CC_STAT_HEIGHT]
+
+                    if c_left<r_left and r_right<c_right and c_top<r_top and r_bottom<c_bottom:
+                        area[p] += row[cv2.CC_STAT_AREA]
+                p += 1
+
+            grade_area.append(area)
+
+        print(grade_area)
+
+        for i in range(len(grade_area)):
+
+            grade = "わからん"
+
+            if grade_area[i][SHU] < grade_area[i][TOKU] and grade_area[i][HANE] < grade_area[i][TOKU]:
+                grade = "tokushu"
+            elif grade_area[i][TOKU] < grade_area[i][SHU] and grade_area[i][HANE] < grade_area[i][SHU]:
+                grade = "shu"
+            elif grade_area[i][TOKU] < grade_area[i][HANE] and grade_area[i][SHU] < grade_area[i][HANE]:
+                grade = "hanedashi"
+
+            cv2.putText(frame,
+                text=grade,
+                org=(stats_cherry[i][cv2.CC_STAT_LEFT], stats_cherry[i][cv2.CC_STAT_TOP]-10),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=3.0,
+                color=(255, 255, 0),
+                thickness=4,
+                lineType=cv2.LINE_4)
+
         output_img = copy.copy(self.original)
         for i, row in enumerate(stats_cherry):
             TopLeft = ( row[cv2.CC_STAT_LEFT], row[cv2.CC_STAT_TOP] )
             ButtomRight = ( row[cv2.CC_STAT_LEFT]+row[cv2.CC_STAT_WIDTH], row[cv2.CC_STAT_TOP]+row[cv2.CC_STAT_HEIGHT])
             cv2.rectangle(output_img, TopLeft, ButtomRight, (255, 255, 0), thickness=5)
         return output_img
-        # self.mask_tokushu, self.masked_img_tokushu = self.mask(self.original, self.tokushu_hsv_min, self.tokushu_hsv_max)
-        # self.mask_shu, self.masked_img_shu = self.mask(self.original, self.shu_hsv_min, self.shu_hsv_max)
-        # self.mask_hane, self.masked_img_hane = self.mask(self.original, self.hane_hsv_min, self.hane_hsv_max)
 
     def detection(self, range_min, range_max, area_min=None):
         mask, masked_img = self.mask(self.original, range_min, range_max)
@@ -96,6 +151,7 @@ class picture():
             max_2 = range_max
 
         return min_1, max_1, min_2, max_2
+
 
 color = (0,255,0)
 thick = 5
