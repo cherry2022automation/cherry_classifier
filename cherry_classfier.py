@@ -5,6 +5,8 @@ from PIL import Image, ImageTk
 from matplotlib import image
 from picture import picture
 import time
+import Relay
+import datetime
 
 oder_T = 1
 oder_B = 4
@@ -16,10 +18,12 @@ class Application(tkinter.Frame):
     color = (0,255,0)
     thick = 3
     camera_num = 1
-    scale = 0.4
+    scale = 0.3
     width = int(1920*scale)
     height = int(1080*scale)
     area_min = int(50000*scale*scale)
+    schedule_toku = []
+    schedule_shu = []
     
     def __init__(self, img, master=None):
         super().__init__(master)
@@ -84,7 +88,51 @@ class Application(tkinter.Frame):
         self.img_tk_R = self.cv2_to_tk(self.draw_center_line(pic_R))
         self.canvas_R.create_image(0, 0, image=self.img_tk_R, anchor='nw') # ImageTk 画像配置
 
-        self.after(10, self.update_picture)
+        
+        for info in self.cam_F.cherry_infos:
+            # 前フレームのさくらんぼと一致確認
+            for info_before in self.cam_F.cherry_infos_before:
+                if info_before["center_x"]-5 < info["center_x"] and info["center_x"] < info_before["center_x"]+10:
+                    info["centered"] = info_before["centered"]
+
+            if info["center_x"] < self.width/4:
+                info["centered"] = False
+            if (self.width*3)/4 < info["center_x"]:
+                info["centered"] = True
+            # centerに来たらエアータイマーセット
+            if self.width/2 < info["center_x"] and info["centered"]==False:
+            # if self.width/2-5 < info["center_x"] and info["center_x"] < self.width/2+5:
+                info["centered"] = True
+                if info["grade"] == "tokushu":
+                    self.schedule_toku.append(datetime.datetime.now()+datetime.timedelta(seconds=11))
+                    print("detect tokushu")
+                if info["grade"] == "shu":
+                    self.schedule_shu.append(datetime.datetime.now()+datetime.timedelta(seconds=17))
+                    print("detect shu")
+        self.cam_F.cherry_infos_before = self.cam_F.cherry_infos
+        # print(self.cam_F.cherry_infos)
+
+        del_list = []
+        for i in range(len(self.schedule_toku)):
+            if self.schedule_toku[i] < datetime.datetime.now():
+                Relay.pulse(1, 0.04)
+                del_list.append(i)
+        for i in del_list:
+            del self.schedule_toku[i]
+
+        del_list = []
+        for i in range(len(self.schedule_shu)):
+            if self.schedule_shu[i] < datetime.datetime.now():
+                Relay.pulse(2, 0.04)
+                del_list.append(i)
+        for i in del_list:
+            del self.schedule_shu[i]
+
+        self.after(5, self.update_picture)
+
+    def sv_push(self, ch, on_time, delay_s):
+        time.sleep(delay_s)
+        Relay.pulse(ch, on_time)
 
     def cv2_to_tk(self, img):
         image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # imreadはBGRなのでRGBに変換

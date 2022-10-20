@@ -18,6 +18,9 @@ class picture():
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [10, 255, 255]
 
+    cherry_info = {"center_x":None, "center_y":None, "centered":False, "grade":""}
+    cherry_infos_before = []
+
     original = None
 
     # hsv値域
@@ -66,6 +69,7 @@ class picture():
 
         offset = 50
         self.grade_area = []
+        self.cherry_infos = []
         
         for i_cherry, row_cherry in enumerate(self.stats_cherry):
 
@@ -74,6 +78,12 @@ class picture():
             c_right = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]+offset
             c_top = row_cherry[cv2.CC_STAT_TOP]-offset
             c_bottom = row_cherry[cv2.CC_STAT_TOP]+row_cherry[cv2.CC_STAT_HEIGHT]+offset
+
+            center_x = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]/2
+            center_y = row_cherry[cv2.CC_STAT_TOP] + row_cherry[cv2.CC_STAT_HEIGHT]/2
+
+            self.cherry_info["center_x"] = center_x
+            self.cherry_info["center_y"] = center_y
 
             area = [0, 0, 0]
             p = 0
@@ -95,6 +105,7 @@ class picture():
                 p += 1
 
             self.grade_area.append(area)
+            self.cherry_infos.append(self.cherry_info)
 
         # ボックス描画
         output_img = copy.copy(self.original)
@@ -110,6 +121,8 @@ class picture():
                 grade = "shu"
             elif self.grade_area[i][TOKU] < self.grade_area[i][HANE] and self.grade_area[i][SHU] < self.grade_area[i][HANE]:
                 grade = "hanedashi"
+
+            self.cherry_infos[i]["grade"] = grade
 
             # 描画
             cv2.putText(output_img,
