@@ -47,10 +47,12 @@ class picture():
     def cam_release(self):
         self.capture.release()
 
-    def get_img(self):
+    def get_img(self, flip=False):
 
         # while(True):
         ret, self.frame = self.capture.read()
+        if flip==True:
+            self.frame = cv2.flip(self.frame, 1)
         self.original = self.frame
         self.result = self.identification(area_min=self.area_min)
 
