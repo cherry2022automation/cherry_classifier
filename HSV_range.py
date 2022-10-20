@@ -41,15 +41,11 @@ class Application(ttk.Frame):
 
     lb_val_width = 5
 
-    def __init__(self, master = None):
+    def __init__(self, image, master = None):
         super().__init__(master)
         self.grid(row=0, column=0)
 
-        # 画像読み込み, 表示
-        filetypes = [("Image file", ".bmp .png .jpg .tif"), ("Bitmap", ".bmp"), ("PNG", ".png"), ("JPEG", ".jpg"), ("Tiff", ".tif")]
-        dir = 'C:'
-        file_pass = filedialog.askopenfilename(title="画像ファイルを開く", filetypes=filetypes, initialdir=dir)          
-        self.cv2_image = cv2.imread(file_pass)
+        self.cv2_image = image
         try:
             cv2.namedWindow("original", cv2.WINDOW_NORMAL)
             cv2.imshow("original", self.cv2_image)
@@ -187,6 +183,14 @@ class Application(ttk.Frame):
         return min_1, max_1, min_2, max_2
 
 if __name__ == "__main__":
+
+    # 画像読み込み, 表示
+    filetypes = [("Image file", ".bmp .png .jpg .tif"), ("Bitmap", ".bmp"), ("PNG", ".png"), ("JPEG", ".jpg"), ("Tiff", ".tif")]
+    dir = 'C:'
+    file_pass = filedialog.askopenfilename(title="画像ファイルを開く", filetypes=filetypes, initialdir=dir)          
+    image = cv2.imread(file_pass)
+
+    # ウィンドウ表示
     root = Tk()
-    app = Application(master = root)
+    app = Application(image, master = root)
     app.mainloop()
