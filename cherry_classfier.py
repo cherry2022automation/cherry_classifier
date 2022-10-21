@@ -89,24 +89,24 @@ class Application(tkinter.Frame):
         self.canvas_R.create_image(0, 0, image=self.img_tk_R, anchor='nw') # ImageTk 画像配置
 
         
-        for info in self.cam_F.cherry_infos:
+        for info_i in range(len(self.cam_F.cherry_infos)):
             # 前フレームのさくらんぼと一致確認
             for info_before in self.cam_F.cherry_infos_before:
-                if info_before["center_x"]-5 < info["center_x"] and info["center_x"] < info_before["center_x"]+10:
-                    info["centered"] = info_before["centered"]
+                if info_before["center_x"]-5 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["center_x"] < info_before["center_x"]+10:
+                    self.cam_F.cherry_infos[info_i]["centered"] = info_before["centered"]
 
-            if info["center_x"] < self.width/4:
-                info["centered"] = False
-            if (self.width*3)/4 < info["center_x"]:
-                info["centered"] = True
+            if self.cam_F.cherry_infos[info_i]["center_x"] < self.width/4:
+                self.cam_F.cherry_infos[info_i]["centered"] = False
+            if (self.width*3)/4 < self.cam_F.cherry_infos[info_i]["center_x"]:
+                self.cam_F.cherry_infos[info_i]["centered"] = True
             # centerに来たらエアータイマーセット
-            if self.width/2 < info["center_x"] and info["centered"]==False:
+            if self.width/2 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["centered"]==False:
             # if self.width/2-5 < info["center_x"] and info["center_x"] < self.width/2+5:
-                info["centered"] = True
-                if info["grade"] == "tokushu":
+                self.cam_F.cherry_infos[info_i]["centered"] = True
+                if self.cam_F.cherry_infos[info_i]["grade"] == "tokushu":
                     self.schedule_toku.append(datetime.datetime.now()+datetime.timedelta(seconds=11))
                     print("detect tokushu")
-                if info["grade"] == "shu":
+                if self.cam_F.cherry_infos[info_i]["grade"] == "shu":
                     self.schedule_shu.append(datetime.datetime.now()+datetime.timedelta(seconds=17))
                     print("detect shu")
         self.cam_F.cherry_infos_before = self.cam_F.cherry_infos
@@ -115,7 +115,7 @@ class Application(tkinter.Frame):
         del_list = []
         for i in range(len(self.schedule_toku)):
             if self.schedule_toku[i] < datetime.datetime.now():
-                Relay.pulse(1, 0.04)
+                Relay.pulse(1, 0.05)
                 del_list.append(i)
         for i in del_list:
             del self.schedule_toku[i]
@@ -123,7 +123,7 @@ class Application(tkinter.Frame):
         del_list = []
         for i in range(len(self.schedule_shu)):
             if self.schedule_shu[i] < datetime.datetime.now():
-                Relay.pulse(2, 0.04)
+                Relay.pulse(2, 0.05)
                 del_list.append(i)
         for i in del_list:
             del self.schedule_shu[i]
