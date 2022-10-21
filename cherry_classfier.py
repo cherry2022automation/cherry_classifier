@@ -18,12 +18,13 @@ class Application(tkinter.Frame):
     color = (0,255,0)
     thick = 3
     camera_num = 1
-    scale = 0.3
+    scale = 0.4
     width = int(1920*scale)
     height = int(1080*scale)
     area_min = int(50000*scale*scale)
     schedule_toku = []
     schedule_shu = []
+    sleep_sycle = 0
     
     def __init__(self, img, master=None):
         super().__init__(master)
@@ -91,16 +92,18 @@ class Application(tkinter.Frame):
         
         for info_i in range(len(self.cam_F.cherry_infos)):
             # 前フレームのさくらんぼと一致確認
-            for info_before in self.cam_F.cherry_infos_before:
-                if info_before["center_x"]-5 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["center_x"] < info_before["center_x"]+10:
-                    self.cam_F.cherry_infos[info_i]["centered"] = info_before["centered"]
+            # for info_before in self.cam_F.cherry_infos_before:
+            #     if info_before["center_x"]-5 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["center_x"] < info_before["center_x"]+10:
+            #         self.cam_F.cherry_infos[info_i]["centered"] = info_before["centered"]
 
-            if self.cam_F.cherry_infos[info_i]["center_x"] < self.width/4:
-                self.cam_F.cherry_infos[info_i]["centered"] = False
-            if (self.width*3)/4 < self.cam_F.cherry_infos[info_i]["center_x"]:
-                self.cam_F.cherry_infos[info_i]["centered"] = True
+            # if self.cam_F.cherry_infos[info_i]["center_x"] < self.width/4:
+            #     self.cam_F.cherry_infos[info_i]["centered"] = False
+            # if (self.width*3)/4 < self.cam_F.cherry_infos[info_i]["center_x"]:
+            #     self.cam_F.cherry_infos[info_i]["centered"] = True
             # centerに来たらエアータイマーセット
-            if self.width/2 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["centered"]==False:
+            # if self.width/2 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["centered"]==False:
+            if self.width/2 < self.cam_F.cherry_infos[info_i]["center_x"] and self.cam_F.cherry_infos[info_i]["center_x"] < (self.width/2)+30 and self.sleep_sycle<=0:
+                self.sleep_sycle = 15
             # if self.width/2-5 < info["center_x"] and info["center_x"] < self.width/2+5:
                 self.cam_F.cherry_infos[info_i]["centered"] = True
                 if self.cam_F.cherry_infos[info_i]["grade"] == "tokushu":
@@ -111,6 +114,10 @@ class Application(tkinter.Frame):
                     print("detect shu")
         self.cam_F.cherry_infos_before = self.cam_F.cherry_infos
         # print(self.cam_F.cherry_infos)
+        if self.sleep_sycle == 0:
+            print("ready")
+
+        self.sleep_sycle -= 1
 
         del_list = []
         for i in range(len(self.schedule_toku)):
