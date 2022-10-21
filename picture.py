@@ -18,7 +18,6 @@ class picture():
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [10, 255, 255]
 
-    cherry_info = {"center_x":None, "center_y":None, "centered":False, "grade":""}
     cherry_infos_before = []
 
     original = None
@@ -73,6 +72,9 @@ class picture():
         
         for i_cherry, row_cherry in enumerate(self.stats_cherry):
 
+            cherry_info = {"center_x":None, "center_y":None, "centered":False, "grade":""}
+
+
             # 四隅座標取得
             c_left = row_cherry[cv2.CC_STAT_LEFT]-offset
             c_right = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]+offset
@@ -82,8 +84,8 @@ class picture():
             center_x = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]/2
             center_y = row_cherry[cv2.CC_STAT_TOP] + row_cherry[cv2.CC_STAT_HEIGHT]/2
 
-            self.cherry_info["center_x"] = center_x
-            self.cherry_info["center_y"] = center_y
+            cherry_info["center_x"] = center_x
+            cherry_info["center_y"] = center_y
 
             area = [0, 0, 0]
             p = 0
@@ -105,7 +107,7 @@ class picture():
                 p += 1
 
             self.grade_area.append(area)
-            self.cherry_infos.append(self.cherry_info)
+            self.cherry_infos.append(cherry_info)
 
         # ボックス描画
         output_img = copy.copy(self.original)
