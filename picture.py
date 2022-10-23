@@ -64,8 +64,6 @@ class picture():
             self.frame = cv2.flip(self.frame, 1)
         self.original = self.frame
         self.get_grade_color_area(area_min=self.area_min)
-        self.identification()
-        self.result = self.draw_result()
 
     def get_grade_color_area(self, area_min=50000):
 
@@ -120,19 +118,6 @@ class picture():
                             cherry_info["hane_area"] += r_info["area"]
 
             self.cherry_infos.append(cherry_info)
-
-    # 等級識別
-    def identification(self):
-        # 各等級領域面積から等級を識別
-        for c_info in self.cherry_infos:
-
-            c_info["grade"] = "?"
-            if c_info["shu_area"]<c_info["toku_area"] and c_info["hane_area"]<c_info["toku_area"]:
-                c_info["grade"] = "tokushu"
-            elif c_info["toku_area"]<c_info["shu_area"] and c_info["hane_area"]<c_info["shu_area"]:
-                c_info["grade"] = "shu"
-            elif c_info["toku_area"]<c_info["hane_area"] and c_info["shu_area"]<c_info["hane_area"]:
-                c_info["grade"] = "hanedashi"
 
     # 結果の描画
     def draw_result(self):
@@ -215,6 +200,7 @@ class picture():
 
         return min_1, max_1, min_2, max_2
 
+    # ラベリング結果をリストで返す
     def label_info(self, stats):
         info = []
         for i, row in enumerate(stats):

@@ -84,22 +84,33 @@ class Application(tkinter.Frame):
         
         # 画像取得
         self.cam_T.get_img(flip=True)
-        pic_T = self.cam_T.result
+        self.cam_B.get_img()
+        self.cam_F.get_img(flip=True)
+        self.cam_R.get_img()
+
+        # 識別
+        self.identification()
+
+        # 識別結果描画
+        self.cam_F.draw_result()
+        self.cam_R.draw_result()
+        self.cam_T.draw_result()
+        self.cam_B.draw_result()
+
+        # 画像配置
+        pic_T = self.cam_T.output_img
         self.img_tk_T = self.cv2_to_tk(self.draw_center_line(pic_T))
         self.canvas_T.create_image(0, 0, image=self.img_tk_T, anchor='nw') # ImageTk 画像配置
 
-        self.cam_B.get_img()
-        pic_B = self.cam_B.result
+        pic_B = self.cam_B.output_img
         self.img_tk_B = self.cv2_to_tk(self.draw_center_line(pic_B))
         self.canvas_B.create_image(0, 0, image=self.img_tk_B, anchor='nw') # ImageTk 画像配置
         
-        self.cam_F.get_img(flip=True)
-        pic_F = self.cam_F.result
+        pic_F = self.cam_F.output_img
         self.img_tk_F = self.cv2_to_tk(self.draw_center_line(pic_F))
         self.canvas_F.create_image(0, 0, image=self.img_tk_F, anchor='nw') # ImageTk 画像配置
 
-        self.cam_R.get_img()
-        pic_R = self.cam_R.result
+        pic_R = self.cam_R.output_img
         self.img_tk_R = self.cv2_to_tk(self.draw_center_line(pic_R))
         self.canvas_R.create_image(0, 0, image=self.img_tk_R, anchor='nw') # ImageTk 画像配置
 
@@ -134,6 +145,32 @@ class Application(tkinter.Frame):
 
         # ループ用
         self.after(self.roop_interval, self.update_picture)
+
+    # 等級識別
+    def identification(self):
+
+        # 3画面の果実のx位置が近ければ
+        for c_info_F in self.cam_F.cherry_infos:
+            for c_info_R in self.cam_R.cherry_infos:
+                for c_info_T in self.cam_T.cherry_infos:
+                    if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_F["right"]:
+                        if c_info_T["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_T["right"]:
+
+                            # 各等級領域の面積を各々合計
+                            toku_area = c_info_F["toku_area"] + c_info_R["toku_area"] + c_info_T["toku_area"]
+                            shu_area = c_info_F["shu_area"] + c_info_R["shu_area"] + c_info_T["shu_area"]
+                            hane_area = c_info_F["hane_area"] + c_info_R["hane_area"] + c_info_T["hane_area"]
+                            # 識別
+                            grade = "?"
+                            if shu_area<toku_area and hane_area<toku_area:
+                                grade = "tokushu"
+                            elif toku_area<shu_area and hane_area<shu_area:
+                                grade = "shu"
+                            elif toku_area<hane_area and shu_area<hane_area:
+                                grade = "hanedashi"
+                            c_info_F["grade"] = grade
+                            c_info_R["grade"] = grade
+                            c_info_T["grade"] = grade
 
     # エアー制御
     def sv_push(self, ch, on_time, delay_s):
