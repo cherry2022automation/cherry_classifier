@@ -7,6 +7,7 @@ from picture import picture
 import time
 import Relay
 import datetime
+import solenoid_valve
 
 oder_T = 1
 oder_B = 4
@@ -55,9 +56,10 @@ class Application(tkinter.Frame):
         # ウィンドウ初期化
         super().__init__(master)
         self.master = master
-        self.master.title('tkinter canvas trial')
+        self.master.title('Cherry Classfier')
         self.pack()
 
+        
         # 画像表示用キャンバス配置
         self.canvas_F = tkinter.Canvas(self, width=self.width, height=self.height) # Canvas作成
         self.canvas_F.grid(row=0, column=0)
@@ -204,6 +206,21 @@ class Application(tkinter.Frame):
 
         return img
 
+# 電磁弁操作
+def sv_operation():
+    window = tkinter.Toplevel(root)
+    window.title("solenoid valve 操作")
+    app = solenoid_valve.solenoid_valve_control(window)
+
+    # モーダルにする設定
+    window.grab_set()        # モーダルにする
+    window.focus_set()       # フォーカスを新しいウィンドウをへ移す
+    # window.transient()   # タスクバーに表示しない
+
+    # ダイアログが閉じられるまで待つ
+    app.wait_window(window)  
+    print("ダイアログが閉じられた")
+
 
 if __name__ == "__main__":
 
@@ -211,9 +228,14 @@ if __name__ == "__main__":
 
     root = tkinter.Tk()
     app = Application(img, master=root)
-    app.mainloop()
 
+    # メニューバー配置
+    men = tkinter.Menu(root)
+    root.config(menu=men)
+    menu_operation =tkinter.Menu(root)
+    men.add_cascade(label="操作", menu=menu_operation)
 
+    # 電磁弁操作
+    menu_operation.add_command(label="電磁弁操作", command=sv_operation)
 
-
-        
+    app.mainloop()        
