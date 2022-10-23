@@ -22,6 +22,7 @@ class picture():
     V = 2
 
     cherry_infos = []
+    old_cherry_infos = []
 
     area_offset = 50
 
@@ -68,6 +69,7 @@ class picture():
         self.mask_shu, self.masked_img_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
         self.mask_hane, self.masked_img_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
 
+        self.old_cherry_infos = self.cherry_infos
         self.cherry_infos = []
 
         # さくらんぼ情報取得 (果実位置情報, 各等級領域面積)
@@ -84,7 +86,12 @@ class picture():
                             "toku_area":0,
                             "shu_area":0,
                             "hane_area":0,
-                            "grade":""}
+                            "grade":"",
+                            "centered":False}
+
+            for old_cherry_info in self.old_cherry_infos:
+                if old_cherry_info["left"]<cherry_info["center_x"] and cherry_info["center_x"]<old_cherry_info["right"]:
+                    cherry_info["centered"] = old_cherry_info["centered"]
 
             # 画素のズレを考慮したサクランボ概説矩形座標
             c_offset_top = cherry_label_info["top"]-self.area_offset

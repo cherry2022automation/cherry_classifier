@@ -32,11 +32,10 @@ class Application(tkinter.Frame):
     delay_toku = 11 # [s]
     delay_shu = 17  # [s]
 
-    # 同一果実の二重検出阻止用、検出無効インターバル
-    sleep_sycle_num = 15
-
     color = (0,255,0)
     thick = 3
+
+    roop_interval = 5   # [m]
 
     # 従属変数
     width = int(cap_width*scale)
@@ -46,9 +45,6 @@ class Application(tkinter.Frame):
     # 電磁弁タスクスケジュールリスト
     schedule_toku = []
     schedule_shu = []
-
-    # 同一果実連続検出阻止用
-    sleep_sycle = 0
     
     def __init__(self, img, master=None):
 
@@ -109,19 +105,14 @@ class Application(tkinter.Frame):
 
         # centerに来たらエアー制御予約 (タスクリストに追加)
         for info in self.cam_F.cherry_infos:
-            if self.width/2 < info["center_x"] and info["center_x"] < (self.width/2)+30 and self.sleep_sycle<=0:
-                self.sleep_sycle = self.sleep_sycle_num
+            if info["centered"]==False and self.width/2<info["center_x"]:
                 if info["grade"] == "tokushu":
                     self.schedule_toku.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_toku))
                     print("detect tokushu")
                 if info["grade"] == "shu":
                     self.schedule_shu.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_shu))
                     print("detect shu")
-        
-        # 同一果実の連続検出阻止
-        if self.sleep_sycle == 0:
-            print("ready")
-        self.sleep_sycle -= 1
+                info["centered"]=True
 
         del_list = []
         # エアー制御予約の実行 (特秀)
@@ -141,13 +132,8 @@ class Application(tkinter.Frame):
         for i in del_list:
             del self.schedule_shu[i]
 
-        try:
-            print(self.cam_F.cherry_infos[0]["toku_area"], self.cam_F.cherry_infos[0]["shu_area"], self.cam_F.cherry_infos[0]["hane_area"])
-        except:
-            pass
-
         # ループ用
-        self.after(5, self.update_picture)
+        self.after(self.roop_interval, self.update_picture)
 
     # エアー制御
     def sv_push(self, ch, on_time, delay_s):
