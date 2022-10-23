@@ -16,6 +16,24 @@ oder_R = 2
 
 class Application(tkinter.Frame):
 
+    # ----------------------------------------------------------------------------------------------
+
+    # エアー電磁弁ON時間
+    sv_on_time = 0.15   # [s]
+
+    # カメラ中心-電磁弁位置 時間
+    delay_toku = 11 # [s]
+    delay_shu = 17  # [s]
+
+    # ウィンドウ表示イネーブル
+    view_en = { "cherry mask":False, "toku mask":False, "shu mask":False, "hane mask":False,
+                "masked cherry":True, "masked toku":True, "masked shu":True, "masked hane":True}
+
+    # 描画イネーブル
+    draw_box_en = True
+    draw_text_en = True
+    draw_line_en = False
+
     # 取得画像サイズ
     cap_width = 1920
     cap_height = 1080
@@ -26,17 +44,13 @@ class Application(tkinter.Frame):
     # 表示時拡大率
     scale = 0.45
 
-    # エアー電磁弁ON時間
-    sv_on_time = 0.15   # [s]
-    
-    # カメラ中心-電磁弁位置 時間
-    delay_toku = 11 # [s]
-    delay_shu = 17  # [s]
-
-    color = (0,255,0)
+    center_line_color = (0,255,0)
     center_line_thick = 2
 
-    roop_interval = 5   # [m]
+    # 画像更新インターバル
+    roop_interval = 5   # [mS]
+
+    # -----------------------------------------------------------------------------------------------
 
     # 従属変数
     width = int(cap_width*scale)
@@ -46,10 +60,6 @@ class Application(tkinter.Frame):
     # 電磁弁タスクスケジュールリスト
     schedule_toku = []
     schedule_shu = []
-
-    draw_box_en = True
-    draw_text_en = True
-    draw_line_en = False
     
     def __init__(self, img, master=None):
 
@@ -58,7 +68,6 @@ class Application(tkinter.Frame):
         self.master = master
         self.master.title('Cherry Classfier')
         self.pack()
-
         
         # 画像表示用キャンバス配置
         self.canvas_F = tkinter.Canvas(self, width=self.width, height=self.height) # Canvas作成
@@ -81,6 +90,14 @@ class Application(tkinter.Frame):
         self.cam_B.cam_set()
         self.cam_F.cam_set()
         self.cam_R.cam_set()
+
+        # メニューバー配置
+        men = tkinter.Menu(self)
+        self.master.config(menu=men)
+        menu_operation = tkinter.Menu(self.master)
+        men.add_cascade(label="操作", menu=menu_operation)
+        # 電磁弁操作
+        menu_operation.add_command(label="電磁弁操作", command=self.sv_operation)
 
         # 画像更新処理開始
         self.update_picture()
@@ -149,6 +166,8 @@ class Application(tkinter.Frame):
         for i in del_list:
             del self.schedule_shu[i]
 
+        self.view()
+
         # ループ用
         self.after(self.roop_interval, self.update_picture)
 
@@ -202,24 +221,39 @@ class Application(tkinter.Frame):
 
             # 描画
             # cv2.line(img, (0, height_half), (width, height_half), self.color, thickness=self.thick, lineType=cv2.LINE_8, shift=0)
-            cv2.line(img, (width_half, 0), (width_half, height), self.color, thickness=self.center_line_thick, lineType=cv2.LINE_8, shift=0)
+            cv2.line(img, (width_half, 0), (width_half, height), self.center_line_color, thickness=self.center_line_thick, lineType=cv2.LINE_8, shift=0)
 
         return img
 
+    def view(self):
+
+        for name in ["cherry mask", "toku mask", "shu mask", "hane mask", "masked cherry", "masked toku", "masked shu", "masked hane"]:
+            if self.view_en[name] == True:
+                im_FR = cv2.vconcat([self.cam_F.pic[name], self.cam_R.pic[name]])
+                im_TB = cv2.vconcat([self.cam_T.pic[name], self.cam_B.pic[name]])
+                combine = cv2.hconcat([im_FR, im_TB])
+                cv2.imshow(name, combine)
+
+# def parameter(self):
+
+#     window = tkinter.Toplevel(root)
+
+
+
 # 電磁弁操作
-def sv_operation():
-    window = tkinter.Toplevel(root)
-    window.title("solenoid valve 操作")
-    app = solenoid_valve.solenoid_valve_control(window)
+    def sv_operation(self):
+        window = tkinter.Toplevel(self)
+        window.title("solenoid valve 操作")
+        app = solenoid_valve.solenoid_valve_control(window)
 
-    # モーダルにする設定
-    window.grab_set()        # モーダルにする
-    window.focus_set()       # フォーカスを新しいウィンドウをへ移す
-    # window.transient()   # タスクバーに表示しない
+        # モーダルにする設定
+        window.grab_set()        # モーダルにする
+        window.focus_set()       # フォーカスを新しいウィンドウをへ移す
+        # window.transient()   # タスクバーに表示しない
 
-    # ダイアログが閉じられるまで待つ
-    app.wait_window(window)  
-    print("ダイアログが閉じられた")
+        # ダイアログが閉じられるまで待つ
+        app.wait_window(window)  
+        print("ダイアログが閉じられた")
 
 
 if __name__ == "__main__":
@@ -228,14 +262,5 @@ if __name__ == "__main__":
 
     root = tkinter.Tk()
     app = Application(img, master=root)
-
-    # メニューバー配置
-    men = tkinter.Menu(root)
-    root.config(menu=men)
-    menu_operation =tkinter.Menu(root)
-    men.add_cascade(label="操作", menu=menu_operation)
-
-    # 電磁弁操作
-    menu_operation.add_command(label="電磁弁操作", command=sv_operation)
 
     app.mainloop()        
