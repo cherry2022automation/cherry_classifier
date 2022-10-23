@@ -41,20 +41,16 @@ class Application(ttk.Frame):
 
     lb_val_width = 5
 
-    def __init__(self, image, master=None, view=False):
+    def __init__(self, image=None, master=None, view=False):
         super().__init__(master)
         self.grid(row=0, column=0)
 
         self.view_en = view
-
         self.cv2_image = image
-        try:
-            if self.view_en==True:
-                cv2.namedWindow("original", cv2.WINDOW_NORMAL)
-                cv2.imshow("original", self.cv2_image)
-        except:
-            messagebox.showinfo("エラー", "画像の読み込みに失敗しました")
-            sys.exit()
+
+        self.new_window()
+
+    def new_window(self):
 
         self.master.title('HSV Checker')
         self.master.columnconfigure(0, weight=1)
@@ -132,6 +128,14 @@ class Application(ttk.Frame):
         self.sc_v_max.grid(row=self.row_max, column=self.column_v_sc, sticky=(N, E, S, W))
         self.sc_v_max.set(self.sv_max)
 
+        try:
+            if self.view_en==True:
+                cv2.namedWindow("original", cv2.WINDOW_NORMAL)
+                cv2.imshow("original", self.cv2_image)
+        except:
+            messagebox.showinfo("エラー", "画像の読み込みに失敗しました")
+            sys.exit()
+
     # 画面更新処理
     def update_screen(self):
         self.label_h_min["text"] = int(self.val_h_min.get())
@@ -196,5 +200,5 @@ if __name__ == "__main__":
 
     # ウィンドウ表示
     root = Tk()
-    app = Application(image, master=root, view=True)
+    app = Application(image=image, master=root, view=True)
     app.mainloop()
