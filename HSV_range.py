@@ -41,14 +41,17 @@ class Application(ttk.Frame):
 
     lb_val_width = 5
 
-    def __init__(self, image, master = None):
+    def __init__(self, image, master=None, view=False):
         super().__init__(master)
         self.grid(row=0, column=0)
 
+        self.view_en = view
+
         self.cv2_image = image
         try:
-            cv2.namedWindow("original", cv2.WINDOW_NORMAL)
-            cv2.imshow("original", self.cv2_image)
+            if self.view_en==True:
+                cv2.namedWindow("original", cv2.WINDOW_NORMAL)
+                cv2.imshow("original", self.cv2_image)
         except:
             messagebox.showinfo("エラー", "画像の読み込みに失敗しました")
             sys.exit()
@@ -137,7 +140,8 @@ class Application(ttk.Frame):
         self.label_s_max["text"] = int(self.val_s_max.get())
         self.label_v_min["text"] = int(self.val_v_min.get())
         self.label_v_max["text"] = int(self.val_v_max.get())
-        self.update_picture()
+        if self.view_en==True:
+            self.update_picture()
 
     # 画像更新処理
     def update_picture(self):
@@ -192,5 +196,5 @@ if __name__ == "__main__":
 
     # ウィンドウ表示
     root = Tk()
-    app = Application(image, master = root)
+    app = Application(image, master=root, view=True)
     app.mainloop()
