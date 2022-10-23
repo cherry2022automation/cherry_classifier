@@ -7,6 +7,19 @@ import copy
 
 class picture():
 
+    # ---------------------------------------------------------------
+
+    # box+文字の色
+    result_color_toku = (0, 0, 255)
+    result_color_shu = (0, 165, 255)
+    result_color_hane = (0, 255, 255)
+
+    # 文字サイズ
+    fontscale = 1.75
+
+    # 画素ずれ余裕
+    area_offset = 50
+
     # hsv抽出範囲
     cherry_hsv_min = [145, 0, 0]
     cherry_hsv_max = [20, 255, 255]
@@ -16,21 +29,16 @@ class picture():
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [17, 255, 255]
+
+    # ---------------------------------------------------------------
+
     # リスト参照用
     H = 0
     S = 1
-    V = 2
-
-    result_color_toku = (0, 0, 255)
-    result_color_shu = (0, 165, 255)
-    result_color_hane = (0, 255, 255)
+    V = 2    
 
     cherry_infos = []
     old_cherry_infos = []
-
-    area_offset = 50
-
-    fontscale = 1.75
 
     original = None
 
@@ -70,10 +78,19 @@ class picture():
     def get_grade_color_area(self, area_min=50000):
 
         # 色情報抽出
-        self.mask_cherry, self.masked_img_cherry, self.stats_cherry = self.detection(self.cherry_hsv_min, self.cherry_hsv_max, area_min = area_min)
-        self.mask_tokushu, self.masked_img_tokushu, stats_tokushu = self.detection(self.tokushu_hsv_min, self.tokushu_hsv_max)
-        self.mask_shu, self.masked_img_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
-        self.mask_hane, self.masked_img_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
+        self.cherry_mask, self.masked_cherry, self.stats_cherry = self.detection(self.cherry_hsv_min, self.cherry_hsv_max, area_min = area_min)
+        self.toku_mask, self.masked_toku, stats_toku = self.detection(self.tokushu_hsv_min, self.tokushu_hsv_max)
+        self.shu_mask, self.masked_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
+        self.hane_mask, self.masked_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
+
+        self.pic = {"cherry mask":self.cherry_mask,
+                    "toku mask":self.toku_mask,
+                    "shu mask":self.shu_mask,
+                    "hane mask":self.hane_mask,
+                    "masked cherry":self.masked_cherry,
+                    "masked toku":self.masked_toku,
+                    "masked shu":self.masked_shu,
+                    "masked hane":self.masked_hane}
 
         self.old_cherry_infos = self.cherry_infos
         self.cherry_infos = []
@@ -106,7 +123,7 @@ class picture():
             c_offset_right = cherry_label_info["right"]+self.area_offset
 
             # 各等級領域の面積取得
-            toku_label_info = self.label_info(stats_tokushu)
+            toku_label_info = self.label_info(stats_toku)
             for r_info in toku_label_info:
                     if c_offset_left<r_info["left"] and r_info["right"]<c_offset_right and c_offset_top<r_info["top"] and r_info["bottom"]<c_offset_bottom:
                             cherry_info["toku_area"] += r_info["area"]
