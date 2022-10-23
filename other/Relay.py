@@ -46,11 +46,11 @@ def off(ch):
     relay = Relay()
     relay.send_command(ch, "off")
 
-def pulse(ch, on_time_ms):
+def pulse(ch, on_time_s):
 
     relay = Relay()
     relay.send_command(ch, "on")
-    time.sleep(on_time_ms)
+    time.sleep(on_time_s)
     relay.send_command(ch, "off")
 
 if __name__ == "__main__":
