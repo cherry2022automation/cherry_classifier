@@ -83,7 +83,8 @@ class picture():
         self.shu_mask, self.masked_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
         self.hane_mask, self.masked_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
 
-        self.pic = {"cherry mask":self.cherry_mask,
+        self.pic = {"original":self.original,
+                    "cherry mask":self.cherry_mask,
                     "toku mask":self.toku_mask,
                     "shu mask":self.shu_mask,
                     "hane mask":self.hane_mask,

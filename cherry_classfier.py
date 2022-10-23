@@ -8,26 +8,28 @@ import time
 import Relay
 import datetime
 import solenoid_valve
+import HSV_range
 
-oder_T = 1
-oder_B = 4
-oder_F = 3
-oder_R = 2
+oder_T = 2
+oder_B = 1
+oder_F = 4
+oder_R = 3
 
 class Application(tkinter.Frame):
 
     # ----------------------------------------------------------------------------------------------
 
     # エアー電磁弁ON時間
-    sv_on_time = 0.15   # [s]
+    sv_on_time = 0.05   # [s]
 
     # カメラ中心-電磁弁位置 時間
-    delay_toku = 11 # [s]
-    delay_shu = 17  # [s]
+    delay_toku = 10.1 # [s]
+    delay_shu = 15.8  # [s]
 
     # ウィンドウ表示イネーブル
-    view_en = { "cherry mask":False, "toku mask":False, "shu mask":False, "hane mask":False,
-                "masked cherry":True, "masked toku":True, "masked shu":True, "masked hane":True}
+    view_en = { "original":True,
+                "cherry mask":False, "toku mask":False, "shu mask":False, "hane mask":False,
+                "masked cherry":False, "masked toku":False, "masked shu":False, "masked hane":False}
 
     # 描画イネーブル
     draw_box_en = True
@@ -94,10 +96,15 @@ class Application(tkinter.Frame):
         # メニューバー配置
         men = tkinter.Menu(self)
         self.master.config(menu=men)
+
         menu_operation = tkinter.Menu(self.master)
         men.add_cascade(label="操作", menu=menu_operation)
         # 電磁弁操作
         menu_operation.add_command(label="電磁弁操作", command=self.sv_operation)
+
+        menu_setting = tkinter.Menu(self.master)
+        men.add_cascade(label="設定", menu=menu_setting)
+        menu_setting.add_command(label="パラメータ設定", command=self.set_parameter)
 
         # 画像更新処理開始
         self.update_picture()
@@ -153,6 +160,8 @@ class Application(tkinter.Frame):
         for i in range(len(self.schedule_toku)):
             if self.schedule_toku[i] < datetime.datetime.now():
                 Relay.pulse(1, self.sv_on_time)
+                # time.sleep(0.1)
+                # Relay.pulse(1, self.sv_on_time)
                 del_list.append(i)
         for i in del_list:
             del self.schedule_toku[i]
@@ -162,6 +171,8 @@ class Application(tkinter.Frame):
         for i in range(len(self.schedule_shu)):
             if self.schedule_shu[i] < datetime.datetime.now():
                 Relay.pulse(2, self.sv_on_time)
+                # time.sleep(0.1)
+                # Relay.pulse(2, self.sv_on_time)
                 del_list.append(i)
         for i in del_list:
             del self.schedule_shu[i]
@@ -227,23 +238,59 @@ class Application(tkinter.Frame):
 
     def view(self):
 
-        for name in ["cherry mask", "toku mask", "shu mask", "hane mask", "masked cherry", "masked toku", "masked shu", "masked hane"]:
+        for name in ["original", "cherry mask", "toku mask", "shu mask", "hane mask", "masked cherry", "masked toku", "masked shu", "masked hane"]:
             if self.view_en[name] == True:
                 im_FR = cv2.vconcat([self.cam_F.pic[name], self.cam_R.pic[name]])
                 im_TB = cv2.vconcat([self.cam_T.pic[name], self.cam_B.pic[name]])
                 combine = cv2.hconcat([im_FR, im_TB])
                 cv2.imshow(name, combine)
 
-# def parameter(self):
+    def set_parameter(self):
 
-#     window = tkinter.Toplevel(root)
+        self.setting_win = tkinter.Toplevel(self)
+        self.setting_win.title("Modal Dialog") # ウィンドウタイトル
+        self.setting_win.geometry("300x200")   # ウィンドウサイズ(幅x高さ)
 
+        # # モーダルにする設定
+        # self.setting_win.grab_set()        # モーダルにする
 
+        self.label_sv_on_time = tkinter.Label(self.setting_win, text="電磁弁ON時間[s]")
+        self.label_sv_on_time.grid(row=0, column=0, sticky=tkinter.E)
+
+        self.box_sv_on_time_val = tkinter.StringVar()
+        box_sv_on_time = tkinter.Entry(self.setting_win, textvariable=self.box_sv_on_time_val, width = 10, justify=tkinter.RIGHT)
+        box_sv_on_time.insert(0, self.sv_on_time)
+        box_sv_on_time.grid(row=0, column=1)
+
+        self.label_delay_toku = tkinter.Label(self.setting_win, text="カメラ中央-SV1時間[s]")
+        self.label_delay_toku.grid(row=1, column=0)
+
+        self.box_delay_toku_val = tkinter.StringVar()
+        box_delay_toku = tkinter.Entry(self.setting_win, textvariable=self.box_delay_toku_val, width = 10, justify=tkinter.RIGHT)
+        box_delay_toku.insert(0, self.delay_toku)
+        box_delay_toku.grid(row=1, column=1)
+
+        self.label_delay_shu = tkinter.Label(self.setting_win, text="カメラ中央-SV2時間[s]")
+        self.label_delay_shu.grid(row=2, column=0)
+
+        self.box_delay_shu_val = tkinter.StringVar()
+        box_delay_shu = tkinter.Entry(self.setting_win, textvariable=self.box_delay_shu_val, width = 10, justify=tkinter.RIGHT)
+        box_delay_shu.insert(0, self.delay_shu)
+        box_delay_shu.grid(row=2, column=1)
+
+        apply_button = tkinter.Button(self.setting_win, text="適用", command=lambda:self.apply_setting())
+        apply_button.grid(row=2, column=2)
+
+    def apply_setting(self):
+        self.sv_on_time = float(self.box_sv_on_time_val.get())
+        self.delay_toku = float(self.box_delay_toku_val.get())
+        self.delay_shu = float(self.box_delay_shu_val.get())
+        self.setting_win.destroy()
 
 # 電磁弁操作
     def sv_operation(self):
         window = tkinter.Toplevel(self)
-        window.title("solenoid valve 操作")
+        window.title("電磁弁操作")
         app = solenoid_valve.solenoid_valve_control(window)
 
         # モーダルにする設定
@@ -253,8 +300,6 @@ class Application(tkinter.Frame):
 
         # ダイアログが閉じられるまで待つ
         app.wait_window(window)  
-        print("ダイアログが閉じられた")
-
 
 if __name__ == "__main__":
 
