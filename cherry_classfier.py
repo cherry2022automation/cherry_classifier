@@ -33,7 +33,7 @@ class Application(tkinter.Frame):
     delay_shu = 17  # [s]
 
     color = (0,255,0)
-    thick = 3
+    center_line_thick = 2
 
     roop_interval = 5   # [m]
 
@@ -147,17 +147,17 @@ class Application(tkinter.Frame):
         image_tk  = ImageTk.PhotoImage(image_pil) # ImageTkフォーマットへ変換
         return image_tk
 
-    # センターライン描画
+    # センターライン(x)描画
     def draw_center_line(self, img):
 
         # 画像サイズ取得
         height, width, channels = img.shape[:3]
-        height_half = int(height/2)
+        # height_half = int(height/2)
         width_half = int(width/2)
 
         # 描画
-        cv2.line(img, (0, height_half), (width, height_half), self.color, thickness=self.thick, lineType=cv2.LINE_8, shift=0)
-        cv2.line(img, (width_half, 0), (width_half, height), self.color, thickness=self.thick, lineType=cv2.LINE_8, shift=0)
+        # cv2.line(img, (0, height_half), (width, height_half), self.color, thickness=self.thick, lineType=cv2.LINE_8, shift=0)
+        cv2.line(img, (width_half, 0), (width_half, height), self.color, thickness=self.center_line_thick, lineType=cv2.LINE_8, shift=0)
 
         return img
 

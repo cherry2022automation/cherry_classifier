@@ -21,6 +21,10 @@ class picture():
     S = 1
     V = 2
 
+    result_color_toku = (0, 0, 255)
+    result_color_shu = (0, 165, 255)
+    result_color_hane = (0, 255, 255)
+
     cherry_infos = []
     old_cherry_infos = []
 
@@ -137,17 +141,26 @@ class picture():
 
         # ボックス+識別結果描画
         for c_info in self.cherry_infos:
+
+            color = (0,0,0)
+            if c_info["grade"]=="tokushu":
+                color = self.result_color_toku
+            if c_info["grade"]=="shu":
+                color = self.result_color_shu
+            if c_info["grade"]=="hanedashi":
+                color = self.result_color_hane
+
             cv2.putText(self.output_img,
                         text=c_info["grade"],
                         org=(c_info["left"], c_info["top"]-10),
                         fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=2.0,
-                        color=(255, 255, 0),
+                        color=color,
                         thickness=4,
                         lineType=cv2.LINE_4)
             LeftTop = (c_info["left"], c_info["top"])
             RightButtom = (c_info["right"], c_info["bottom"])
-            cv2.rectangle(self.output_img, LeftTop, RightButtom, (255, 255, 0), thickness=5)
+            cv2.rectangle(self.output_img, LeftTop, RightButtom, color, thickness=5)
 
         return self.output_img
 
