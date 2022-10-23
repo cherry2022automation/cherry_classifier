@@ -59,9 +59,11 @@ class picture():
         if flip==True:
             self.frame = cv2.flip(self.frame, 1)
         self.original = self.frame
-        self.result = self.identification(area_min=self.area_min)
+        self.get_grade_color_area(area_min=self.area_min)
+        self.identification()
+        self.result = self.draw_result()
 
-    def identification(self, area_min=50000):
+    def get_grade_color_area(self, area_min=50000):
 
         # 色情報抽出
         self.mask_cherry, self.masked_img_cherry, self.stats_cherry = self.detection(self.cherry_hsv_min, self.cherry_hsv_max, area_min = area_min)
@@ -115,9 +117,8 @@ class picture():
 
             self.cherry_infos.append(cherry_info)
 
-        # 表示用画像
-        output_img = copy.copy(self.original)
-
+    # 等級識別
+    def identification(self):
         # 各等級領域面積から等級を識別
         for c_info in self.cherry_infos:
 
@@ -129,21 +130,26 @@ class picture():
             elif c_info["toku_area"]<c_info["hane_area"] and c_info["shu_area"]<c_info["hane_area"]:
                 c_info["grade"] = "hanedashi"
 
+    # 結果の描画
+    def draw_result(self):
+        # 表示用画像
+        self.output_img = copy.copy(self.original)
+
         # ボックス+識別結果描画
         for c_info in self.cherry_infos:
-            cv2.putText(output_img,
+            cv2.putText(self.output_img,
                         text=c_info["grade"],
                         org=(c_info["left"], c_info["top"]-10),
                         fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=3.0,
+                        fontScale=2.0,
                         color=(255, 255, 0),
                         thickness=4,
                         lineType=cv2.LINE_4)
             LeftTop = (c_info["left"], c_info["top"])
             RightButtom = (c_info["right"], c_info["bottom"])
-            cv2.rectangle(output_img, LeftTop, RightButtom, (255, 255, 0), thickness=5)
+            cv2.rectangle(self.output_img, LeftTop, RightButtom, (255, 255, 0), thickness=5)
 
-        return output_img
+        return self.output_img
 
     # さくらんぼ領域取得
     def detection(self, range_min, range_max, area_min=None):
@@ -229,7 +235,7 @@ if __name__ == "__main__":
         ret, frame = capture.read()
 
         picture_F = picture(frame)
-        frame = picture_F.identification()
+        frame = picture_F.get_grade_color_area()
 
         # 画像サイズ取得
         height, width, channels = frame.shape[:3]
