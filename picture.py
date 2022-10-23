@@ -4,11 +4,10 @@ os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import numpy as np
 import copy
-import threading
 
 class picture():
-# class picture(threading.Thread):
 
+    # hsv抽出範囲
     cherry_hsv_min = [145, 0, 0]
     cherry_hsv_max = [10, 255, 255]
     tokushu_hsv_min = [152, 120, 0]
@@ -17,8 +16,14 @@ class picture():
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [10, 255, 255]
+    # リスト参照用
+    H = 0
+    S = 1
+    V = 2
 
-    cherry_infos_before = []
+    cherry_infos = []
+
+    area_offset = 50
 
     original = None
 
@@ -27,18 +32,14 @@ class picture():
     h_max = 179
     sv_max = 255
 
-    H = 0
-    S = 1
-    V = 2
-
     def __init__(self, num, width, height, area_min=50000):
         self.num = num
         self.width = width
         self.height = height
         self.area_min = area_min
-        # threading.Thread.__init__(self)
         pass
 
+    # カメラ初期化, 設定
     def cam_set(self):
         self.area_min = self.area_min
 
@@ -46,12 +47,13 @@ class picture():
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, int(self.width))
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT,int(self.height))
 
+    # カメラファイナライズ
     def cam_release(self):
         self.capture.release()
 
+    # 画像取得+各等級領域面積取得
     def get_img(self, flip=False):
 
-        # while(True):
         ret, self.frame = self.capture.read()
         if flip==True:
             self.frame = cv2.flip(self.frame, 1)
@@ -66,82 +68,77 @@ class picture():
         self.mask_shu, self.masked_img_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
         self.mask_hane, self.masked_img_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
 
-        offset = 50
-        self.grade_area = []
         self.cherry_infos = []
-        
-        for i_cherry, row_cherry in enumerate(self.stats_cherry):
 
-            cherry_info = {"center_x":None, "center_y":None, "centered":False, "grade":""}
+        # さくらんぼ情報取得 (果実位置情報, 各等級領域面積)
+        cherry_label_infos = self.label_info(self.stats_cherry)
+        for cherry_label_info in cherry_label_infos:
 
+            # データ格納
+            cherry_info = { "left":cherry_label_info["left"],
+                            "right":cherry_label_info["right"],
+                            "top":cherry_label_info["top"],
+                            "bottom":cherry_label_info["bottom"],
+                            "center_x":cherry_label_info["center_x"],
+                            "center_y":cherry_label_info["center_y"],
+                            "toku_area":0,
+                            "shu_area":0,
+                            "hane_area":0,
+                            "grade":""}
 
-            # 四隅座標取得
-            c_left = row_cherry[cv2.CC_STAT_LEFT]-offset
-            c_right = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]+offset
-            c_top = row_cherry[cv2.CC_STAT_TOP]-offset
-            c_bottom = row_cherry[cv2.CC_STAT_TOP]+row_cherry[cv2.CC_STAT_HEIGHT]+offset
+            # 画素のズレを考慮したサクランボ概説矩形座標
+            c_offset_top = cherry_label_info["top"]-self.area_offset
+            c_offset_bottom = cherry_label_info["bottom"]+self.area_offset
+            c_offset_left = cherry_label_info["left"]-self.area_offset
+            c_offset_right = cherry_label_info["right"]+self.area_offset
 
-            center_x = row_cherry[cv2.CC_STAT_LEFT] + row_cherry[cv2.CC_STAT_WIDTH]/2
-            center_y = row_cherry[cv2.CC_STAT_TOP] + row_cherry[cv2.CC_STAT_HEIGHT]/2
+            # 各等級領域の面積取得
+            toku_label_info = self.label_info(stats_tokushu)
+            for r_info in toku_label_info:
+                    if c_offset_left<r_info["left"] and r_info["right"]<c_offset_right and c_offset_top<r_info["top"] and r_info["bottom"]<c_offset_bottom:
+                            cherry_info["toku_area"] += r_info["area"]
+            shu_label_info = self.label_info(stats_shu)
+            for r_info in shu_label_info:
+                    if c_offset_left<r_info["left"] and r_info["right"]<c_offset_right and c_offset_top<r_info["top"] and r_info["bottom"]<c_offset_bottom:
+                            cherry_info["shu_area"] += r_info["area"]
+            hane_label_info = self.label_info(stats_hane)
+            for r_info in hane_label_info:
+                    if c_offset_left<r_info["left"] and r_info["right"]<c_offset_right and c_offset_top<r_info["top"] and r_info["bottom"]<c_offset_bottom:
+                            cherry_info["hane_area"] += r_info["area"]
 
-            cherry_info["center_x"] = center_x
-            cherry_info["center_y"] = center_y
-
-            area = [0, 0, 0]
-            p = 0
-            TOKU = 0
-            SHU = 1
-            HANE = 2
-
-            for stats in [stats_tokushu, stats_shu, stats_hane]:
-
-                # さくらんぼ領域内に赤色領域があれば面積を足す
-                for i, row in enumerate(stats):
-                    r_left = row[cv2.CC_STAT_LEFT]
-                    r_right = row[cv2.CC_STAT_LEFT] + row[cv2.CC_STAT_WIDTH]
-                    r_top = row[cv2.CC_STAT_TOP]
-                    r_bottom = row[cv2.CC_STAT_TOP] + row[cv2.CC_STAT_HEIGHT]
-
-                    if c_left<r_left and r_right<c_right and c_top<r_top and r_bottom<c_bottom:
-                        area[p] += row[cv2.CC_STAT_AREA]
-                p += 1
-
-            self.grade_area.append(area)
             self.cherry_infos.append(cherry_info)
 
-        # ボックス描画
+        # 表示用画像
         output_img = copy.copy(self.original)
 
-        # 面積から等級識別
-        for i in range(len(self.grade_area)):
+        # 各等級領域面積から等級を識別
+        for c_info in self.cherry_infos:
 
-            grade = "？"
+            c_info["grade"] = "?"
+            if c_info["shu_area"]<c_info["toku_area"] and c_info["hane_area"]<c_info["toku_area"]:
+                c_info["grade"] = "tokushu"
+            elif c_info["toku_area"]<c_info["shu_area"] and c_info["hane_area"]<c_info["shu_area"]:
+                c_info["grade"] = "shu"
+            elif c_info["toku_area"]<c_info["hane_area"] and c_info["shu_area"]<c_info["hane_area"]:
+                c_info["grade"] = "hanedashi"
 
-            if self.grade_area[i][SHU] < self.grade_area[i][TOKU] and self.grade_area[i][HANE] < self.grade_area[i][TOKU]:
-                grade = "tokushu"
-            elif self.grade_area[i][TOKU] < self.grade_area[i][SHU] and self.grade_area[i][HANE] < self.grade_area[i][SHU]:
-                grade = "shu"
-            elif self.grade_area[i][TOKU] < self.grade_area[i][HANE] and self.grade_area[i][SHU] < self.grade_area[i][HANE]:
-                grade = "hanedashi"
-
-            self.cherry_infos[i]["grade"] = grade
-
-            # 描画
+        # ボックス+識別結果描画
+        for c_info in self.cherry_infos:
             cv2.putText(output_img,
-                        text=grade,
-                        org=(self.stats_cherry[i][cv2.CC_STAT_LEFT], self.stats_cherry[i][cv2.CC_STAT_TOP]-10),
+                        text=c_info["grade"],
+                        org=(c_info["left"], c_info["top"]-10),
                         fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=3.0,
                         color=(255, 255, 0),
                         thickness=4,
                         lineType=cv2.LINE_4)
-        
-        for i, row in enumerate(self.stats_cherry):
-            TopLeft = ( row[cv2.CC_STAT_LEFT], row[cv2.CC_STAT_TOP] )
-            ButtomRight = ( row[cv2.CC_STAT_LEFT]+row[cv2.CC_STAT_WIDTH], row[cv2.CC_STAT_TOP]+row[cv2.CC_STAT_HEIGHT])
-            cv2.rectangle(output_img, TopLeft, ButtomRight, (255, 255, 0), thickness=5)
+            LeftTop = (c_info["left"], c_info["top"])
+            RightButtom = (c_info["right"], c_info["bottom"])
+            cv2.rectangle(output_img, LeftTop, RightButtom, (255, 255, 0), thickness=5)
+
         return output_img
 
+    # さくらんぼ領域取得
     def detection(self, range_min, range_max, area_min=None):
         mask, masked_img = self.mask(self.original, range_min, range_max)
         retval, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
@@ -153,8 +150,8 @@ class picture():
         stats = np.delete(stats, del_list, 0)
         return mask, masked_img, stats
 
+    # hsv指定範囲でマスク処理
     def mask(self, img, range_min, range_max):
-        # マスク処理
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         hsv_range_min_1, hsv_range_max_1, hsv_range_min_2, hsv_range_max_2 = self.consider_distant_range(range_min, range_max)
         mask1 = cv2.inRange(hsv, hsv_range_min_1, hsv_range_max_1)
@@ -163,6 +160,7 @@ class picture():
         masked_img = cv2.bitwise_and(img, img, mask=mask)
         return mask, masked_img
 
+    # hsv抽出範囲取得 (バンドカット対応)
     def consider_distant_range(self, range_min, range_max):
 
         h_min_1, h_max_1, h_min_2, h_max_2 = self.single_range(self.hsv_min, self.h_max, range_min[self.H], range_max[self.H])
@@ -174,7 +172,7 @@ class picture():
         hsv_range_2_max = np.array([h_max_2, s_max_2, v_max_2])
         return hsv_range_1_min, hsv_range_1_max, hsv_range_2_min, hsv_range_2_max
 
-    # h,s,v 単体抽出範囲取得
+    # h,s,v 単体抽出範囲取得 (バンドカット対応)
     def single_range(self, range_min, range_max, min, max):
 
         if min <= max:
@@ -190,6 +188,21 @@ class picture():
             max_2 = range_max
 
         return min_1, max_1, min_2, max_2
+
+    def label_info(self, stats):
+        info = []
+        for i, row in enumerate(stats):
+            left = row[cv2.CC_STAT_LEFT]
+            width = row[cv2.CC_STAT_WIDTH]
+            top = row[cv2.CC_STAT_TOP]
+            height = row[cv2.CC_STAT_HEIGHT]
+            area = row[cv2.CC_STAT_AREA]
+            right = left + width
+            bottom = top+height
+            center_x = left + width/2
+            center_y = top + height/2
+            info.append({"left":left, "right":right, "top":top, "bottom":bottom, "center_x":center_x, "center_y":center_y, "area":area})
+        return info
 
 if __name__ == "__main__":
 
