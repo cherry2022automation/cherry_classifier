@@ -45,6 +45,10 @@ class Application(tkinter.Frame):
     # 電磁弁タスクスケジュールリスト
     schedule_toku = []
     schedule_shu = []
+
+    draw_box_en = True
+    draw_text_en = True
+    draw_line_en = False
     
     def __init__(self, img, master=None):
 
@@ -92,10 +96,10 @@ class Application(tkinter.Frame):
         self.identification()
 
         # 識別結果描画
-        self.cam_F.draw_result()
-        self.cam_R.draw_result()
-        self.cam_T.draw_result()
-        self.cam_B.draw_result()
+        self.cam_F.draw_result(box=self.draw_box_en, text=self.draw_text_en)
+        self.cam_R.draw_result(box=self.draw_box_en, text=self.draw_text_en)
+        self.cam_T.draw_result(box=self.draw_box_en, text=self.draw_text_en)
+        self.cam_B.draw_result(box=self.draw_box_en, text=self.draw_text_en)
 
         # 画像配置
         pic_T = self.cam_T.output_img
@@ -153,7 +157,7 @@ class Application(tkinter.Frame):
         for c_info_F in self.cam_F.cherry_infos:
             for c_info_R in self.cam_R.cherry_infos:
                 for c_info_T in self.cam_T.cherry_infos:
-                    if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_F["right"]:
+                    if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_R["right"]:
                         if c_info_T["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_T["right"]:
 
                             # 各等級領域の面積を各々合計
@@ -187,14 +191,16 @@ class Application(tkinter.Frame):
     # センターライン(x)描画
     def draw_center_line(self, img):
 
-        # 画像サイズ取得
-        height, width, channels = img.shape[:3]
-        # height_half = int(height/2)
-        width_half = int(width/2)
+        if self.draw_line_en==True:
 
-        # 描画
-        # cv2.line(img, (0, height_half), (width, height_half), self.color, thickness=self.thick, lineType=cv2.LINE_8, shift=0)
-        cv2.line(img, (width_half, 0), (width_half, height), self.color, thickness=self.center_line_thick, lineType=cv2.LINE_8, shift=0)
+            # 画像サイズ取得
+            height, width, channels = img.shape[:3]
+            # height_half = int(height/2)
+            width_half = int(width/2)
+
+            # 描画
+            # cv2.line(img, (0, height_half), (width, height_half), self.color, thickness=self.thick, lineType=cv2.LINE_8, shift=0)
+            cv2.line(img, (width_half, 0), (width_half, height), self.color, thickness=self.center_line_thick, lineType=cv2.LINE_8, shift=0)
 
         return img
 

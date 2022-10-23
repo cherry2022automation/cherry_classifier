@@ -9,13 +9,13 @@ class picture():
 
     # hsv抽出範囲
     cherry_hsv_min = [145, 0, 0]
-    cherry_hsv_max = [10, 255, 255]
+    cherry_hsv_max = [20, 255, 255]
     tokushu_hsv_min = [152, 120, 0]
     tokushu_hsv_max = [170, 255, 200]
     shu_hsv_min = [160, 168, 170]
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
-    hane_hsv_max = [10, 255, 255]
+    hane_hsv_max = [17, 255, 255]
     # リスト参照用
     H = 0
     S = 1
@@ -29,6 +29,8 @@ class picture():
     old_cherry_infos = []
 
     area_offset = 50
+
+    fontscale = 1.75
 
     original = None
 
@@ -120,7 +122,7 @@ class picture():
             self.cherry_infos.append(cherry_info)
 
     # 結果の描画
-    def draw_result(self):
+    def draw_result(self, box=True, text=True):
         # 表示用画像
         self.output_img = copy.copy(self.original)
 
@@ -135,17 +137,19 @@ class picture():
             if c_info["grade"]=="hanedashi":
                 color = self.result_color_hane
 
-            cv2.putText(self.output_img,
-                        text=c_info["grade"],
-                        org=(c_info["left"], c_info["top"]-10),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=2.0,
-                        color=color,
-                        thickness=4,
-                        lineType=cv2.LINE_4)
-            LeftTop = (c_info["left"], c_info["top"])
-            RightButtom = (c_info["right"], c_info["bottom"])
-            cv2.rectangle(self.output_img, LeftTop, RightButtom, color, thickness=5)
+            if text==True:
+                cv2.putText(self.output_img,
+                            text=c_info["grade"],
+                            org=(c_info["left"], c_info["top"]-10),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=self.fontscale,
+                            color=color,
+                            thickness=4,
+                            lineType=cv2.LINE_4)
+            if box==True:
+                LeftTop = (c_info["left"], c_info["top"])
+                RightButtom = (c_info["right"], c_info["bottom"])
+                cv2.rectangle(self.output_img, LeftTop, RightButtom, color, thickness=5)
 
         return self.output_img
 
