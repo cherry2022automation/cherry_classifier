@@ -121,7 +121,7 @@ class picture():
             self.cherry_infos.append(cherry_info)
 
     # 等級色の取得
-    def get_grade_color_area(self, area_min=50000):
+    def get_grade_color_area(self):
 
         # 色情報抽出
         self.toku_mask, self.masked_toku, stats_toku = self.detection(self.tokushu_hsv_min, self.tokushu_hsv_max)

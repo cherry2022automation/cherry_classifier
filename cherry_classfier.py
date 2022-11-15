@@ -20,11 +20,11 @@ class Application(tkinter.Frame):
     # ----------------------------------------------------------------------------------------------
 
     # エアー電磁弁ON時間
-    sv_on_time = 0.05   # [s]
+    sv_on_time = 0.15   # [s]
 
     # カメラ中心-電磁弁位置 時間
-    delay_toku = 10.1 # [s]
-    delay_shu = 15.8  # [s]
+    delay_toku = 1.6 # [s]
+    delay_shu = 2.6  # [s]
 
     # ウィンドウ表示イネーブル
     view_en = { "original":False,
@@ -37,23 +37,27 @@ class Application(tkinter.Frame):
     draw_text_en = True
     draw_line_en = False
 
-    # 取得画像サイズ
+    print_fps_en = False
+
+    # 取得画像最大サイズ
     cap_width = 1920
     cap_height = 1080
 
     # ラベリング時しきい値(果実面積)
     original_cherry_area_min = 50000
 
-    # 表示時拡大率
-    scale = 0.45
+    # カメラ解像度拡大率
+    scale = 0.2
 
     center_line_color = (0,255,0)
     center_line_thick = 2
 
     # 画像更新インターバル
-    roop_interval = 5   # [mS]
+    roop_interval = 10   # [mS]
 
     # -----------------------------------------------------------------------------------------------
+
+    last_cycle_end = None
 
     # 従属変数
     width = int(cap_width*scale)
@@ -180,6 +184,15 @@ class Application(tkinter.Frame):
 
         # ループ用
         self.after(self.roop_interval, self.update_picture)
+
+        if self.print_fps_en == True:
+            cycle_end = time.time()
+            if self.last_cycle_end != None:
+                cycle_time = cycle_end - self.last_cycle_end
+                fps = 1/cycle_time
+                print("fps : ", str(fps))
+            self.last_cycle_end = cycle_end
+        
 
     # 等級識別
     def identification(self):
