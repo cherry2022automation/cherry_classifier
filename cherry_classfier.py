@@ -29,7 +29,9 @@ class Application(tkinter.Frame):
     # ウィンドウ表示イネーブル
     view_en = { "original":True,
                 "cherry mask":False, "toku mask":False, "shu mask":False, "hane mask":False,
+                # "masked cherry":True, "masked toku":True, "masked shu":True, "masked hane":True}
                 "masked cherry":False, "masked toku":False, "masked shu":False, "masked hane":False}
+
 
     # 描画イネーブル
     draw_box_en = True

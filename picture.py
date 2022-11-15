@@ -13,6 +13,7 @@ class picture():
     result_color_toku = (0, 0, 255)
     result_color_shu = (0, 165, 255)
     result_color_hane = (0, 255, 255)
+    char_color = (0,0,0)
 
     # 文字サイズ
     fontscale = 1.75
@@ -161,7 +162,7 @@ class picture():
                             org=(c_info["left"], c_info["top"]-10),
                             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                             fontScale=self.fontscale,
-                            color=color,
+                            color=self.char_color,
                             thickness=4,
                             lineType=cv2.LINE_4)
             if box==True:
