@@ -27,11 +27,10 @@ class Application(tkinter.Frame):
     delay_shu = 15.8  # [s]
 
     # ウィンドウ表示イネーブル
-    view_en = { "original":True,
+    view_en = { "original":False,
                 "cherry mask":False, "toku mask":False, "shu mask":False, "hane mask":False,
                 # "masked cherry":True, "masked toku":True, "masked shu":True, "masked hane":True}
                 "masked cherry":False, "masked toku":False, "masked shu":False, "masked hane":False}
-
 
     # 描画イネーブル
     draw_box_en = True
@@ -120,8 +119,17 @@ class Application(tkinter.Frame):
         self.cam_F.get_img(flip=True)
         self.cam_R.get_img()
 
-        # 識別
-        self.identification()
+        # centerに来たら識別+エアー制御予約 (タスクリストに追加)
+        for info in self.cam_F.cherry_infos:
+            if info["centered"]==False and self.width/2<info["center_x"]:
+                self.identification()
+                if info["grade"] == "tokushu":
+                    self.schedule_toku.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_toku))
+                    print("detect tokushu")
+                if info["grade"] == "shu":
+                    self.schedule_shu.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_shu))
+                    print("detect shu")
+                info["centered"]=True
 
         # 識別結果描画
         self.cam_F.draw_result(box=self.draw_box_en, text=self.draw_text_en)
@@ -145,17 +153,6 @@ class Application(tkinter.Frame):
         pic_R = self.cam_R.output_img
         self.img_tk_R = self.cv2_to_tk(self.draw_center_line(pic_R))
         self.canvas_R.create_image(0, 0, image=self.img_tk_R, anchor='nw') # ImageTk 画像配置
-
-        # centerに来たらエアー制御予約 (タスクリストに追加)
-        for info in self.cam_F.cherry_infos:
-            if info["centered"]==False and self.width/2<info["center_x"]:
-                if info["grade"] == "tokushu":
-                    self.schedule_toku.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_toku))
-                    print("detect tokushu")
-                if info["grade"] == "shu":
-                    self.schedule_shu.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_shu))
-                    print("detect shu")
-                info["centered"]=True
 
         del_list = []
         # エアー制御予約の実行 (特秀)
@@ -187,28 +184,34 @@ class Application(tkinter.Frame):
     # 等級識別
     def identification(self):
 
+        self.cam_F.get_grade_color_area()
+
         # 3画面の果実のx位置が近ければ
         for c_info_F in self.cam_F.cherry_infos:
             for c_info_R in self.cam_R.cherry_infos:
                 for c_info_T in self.cam_T.cherry_infos:
-                    if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_R["right"]:
-                        if c_info_T["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_T["right"]:
 
-                            # 各等級領域の面積を各々合計
-                            toku_area = c_info_F["toku_area"] + c_info_R["toku_area"] + c_info_T["toku_area"]
-                            shu_area = c_info_F["shu_area"] + c_info_R["shu_area"] + c_info_T["shu_area"]
-                            hane_area = c_info_F["hane_area"] + c_info_R["hane_area"] + c_info_T["hane_area"]
-                            # 識別
-                            grade = "?"
-                            if shu_area<toku_area and hane_area<toku_area:
-                                grade = "tokushu"
-                            elif toku_area<shu_area and hane_area<shu_area:
-                                grade = "shu"
-                            elif toku_area<hane_area and shu_area<hane_area:
-                                grade = "hanedashi"
-                            c_info_F["grade"] = grade
-                            c_info_R["grade"] = grade
-                            c_info_T["grade"] = grade
+                    # 画面中央のもののみ
+                    if c_info_F["centered"]==False and self.width/2<c_info_F["center_x"]:
+
+                        if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_R["right"]:
+                            if c_info_T["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_T["right"]:
+
+                                # 各等級領域の面積を各々合計
+                                toku_area = c_info_F["toku_area"] + c_info_R["toku_area"] + c_info_T["toku_area"]
+                                shu_area = c_info_F["shu_area"] + c_info_R["shu_area"] + c_info_T["shu_area"]
+                                hane_area = c_info_F["hane_area"] + c_info_R["hane_area"] + c_info_T["hane_area"]
+                                # 識別
+                                grade = "?"
+                                if shu_area<toku_area and hane_area<toku_area:
+                                    grade = "tokushu"
+                                elif toku_area<shu_area and hane_area<shu_area:
+                                    grade = "shu"
+                                elif toku_area<hane_area and shu_area<hane_area:
+                                    grade = "hanedashi"
+                                c_info_F["grade"] = grade
+                                c_info_R["grade"] = grade
+                                c_info_T["grade"] = grade
 
     # エアー制御
     def sv_push(self, ch, on_time, delay_s):

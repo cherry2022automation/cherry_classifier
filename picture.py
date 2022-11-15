@@ -9,6 +9,8 @@ class picture():
 
     # ---------------------------------------------------------------
 
+    use_masked_img = False
+
     # box+文字の色
     result_color_toku = (0, 0, 255)
     result_color_shu = (0, 165, 255)
@@ -67,39 +69,35 @@ class picture():
     def cam_release(self):
         self.capture.release()
 
-    # 画像取得+各等級領域面積取得
+    # 画像取得+さくらんぼ領域取得
     def get_img(self, flip=False):
 
         ret, self.frame = self.capture.read()
         if flip==True:
             self.frame = cv2.flip(self.frame, 1)
         self.original = self.frame
-        self.get_grade_color_area(area_min=self.area_min)
+        self.get_cherry_area(area_min=self.area_min)
 
-    def get_grade_color_area(self, area_min=50000):
+    # さくらんぼ領域取得
+    def get_cherry_area(self, area_min=50000):
 
-        # 色情報抽出
         self.cherry_mask, self.masked_cherry, self.stats_cherry = self.detection(self.cherry_hsv_min, self.cherry_hsv_max, area_min = area_min)
-        self.toku_mask, self.masked_toku, stats_toku = self.detection(self.tokushu_hsv_min, self.tokushu_hsv_max)
-        self.shu_mask, self.masked_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
-        self.hane_mask, self.masked_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
-
         self.pic = {"original":self.original,
                     "cherry mask":self.cherry_mask,
-                    "toku mask":self.toku_mask,
-                    "shu mask":self.shu_mask,
-                    "hane mask":self.hane_mask,
+                    "toku mask":None,
+                    "shu mask":None,
+                    "hane mask":None,
                     "masked cherry":self.masked_cherry,
-                    "masked toku":self.masked_toku,
-                    "masked shu":self.masked_shu,
-                    "masked hane":self.masked_hane}
+                    "masked toku":None,
+                    "masked shu":None,
+                    "masked hane":None}
 
         self.old_cherry_infos = self.cherry_infos
         self.cherry_infos = []
 
-        # さくらんぼ情報取得 (果実位置情報, 各等級領域面積)
-        cherry_label_infos = self.label_info(self.stats_cherry)
-        for cherry_label_info in cherry_label_infos:
+        # さくらんぼ情報取得 (果実位置情報)
+        self.cherry_label_infos = self.label_info(self.stats_cherry)
+        for cherry_label_info in self.cherry_label_infos:
 
             # データ格納
             cherry_info = { "left":cherry_label_info["left"],
@@ -114,15 +112,36 @@ class picture():
                             "grade":"",
                             "centered":False}
 
+            # 位置情報の引き継ぎ
             for old_cherry_info in self.old_cherry_infos:
                 if old_cherry_info["left"]<cherry_info["center_x"] and cherry_info["center_x"]<old_cherry_info["right"]:
                     cherry_info["centered"] = old_cherry_info["centered"]
+                    cherry_info["grade"] = old_cherry_info["grade"]
+
+            self.cherry_infos.append(cherry_info)
+
+    # 等級色の取得
+    def get_grade_color_area(self, area_min=50000):
+
+        # 色情報抽出
+        self.toku_mask, self.masked_toku, stats_toku = self.detection(self.tokushu_hsv_min, self.tokushu_hsv_max)
+        self.shu_mask, self.masked_shu, stats_shu = self.detection(self.shu_hsv_min, self.shu_hsv_max)
+        self.hane_mask, self.masked_hane, stats_hane = self.detection(self.hane_hsv_min, self.hane_hsv_max)
+        
+        self.pic["toku mask"] = self.toku_mask
+        self.pic["shu mask"] = self.shu_mask
+        self.pic["hane mask"] = self.hane_mask
+        self.pic["masked toku"] = self.masked_toku
+        self.pic["masked shu"] = self.masked_shu
+        self.pic["masked hane"] = self.masked_hane        
+
+        for cherry_info in self.cherry_infos:
 
             # 画素のズレを考慮したサクランボ概説矩形座標
-            c_offset_top = cherry_label_info["top"]-self.area_offset
-            c_offset_bottom = cherry_label_info["bottom"]+self.area_offset
-            c_offset_left = cherry_label_info["left"]-self.area_offset
-            c_offset_right = cherry_label_info["right"]+self.area_offset
+            c_offset_top = cherry_info["top"]-self.area_offset
+            c_offset_bottom = cherry_info["bottom"]+self.area_offset
+            c_offset_left = cherry_info["left"]-self.area_offset
+            c_offset_right = cherry_info["right"]+self.area_offset
 
             # 各等級領域の面積取得
             toku_label_info = self.label_info(stats_toku)
@@ -137,8 +156,6 @@ class picture():
             for r_info in hane_label_info:
                     if c_offset_left<r_info["left"] and r_info["right"]<c_offset_right and c_offset_top<r_info["top"] and r_info["bottom"]<c_offset_bottom:
                             cherry_info["hane_area"] += r_info["area"]
-
-            self.cherry_infos.append(cherry_info)
 
     # 結果の描画
     def draw_result(self, box=True, text=True):
@@ -172,7 +189,7 @@ class picture():
 
         return self.output_img
 
-    # さくらんぼ領域取得
+    # 色領域取得
     def detection(self, range_min, range_max, area_min=None):
         mask, masked_img = self.mask(self.original, range_min, range_max)
         retval, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
@@ -191,7 +208,10 @@ class picture():
         mask1 = cv2.inRange(hsv, hsv_range_min_1, hsv_range_max_1)
         mask2 = cv2.inRange(hsv, hsv_range_min_2, hsv_range_max_2)
         mask = mask1 + mask2
-        masked_img = cv2.bitwise_and(img, img, mask=mask)
+        if self.use_masked_img == True:
+            masked_img = cv2.bitwise_and(img, img, mask=mask)
+        else:
+            masked_img = None
         return mask, masked_img
 
     # hsv抽出範囲取得 (バンドカット対応)
