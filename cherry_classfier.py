@@ -1,5 +1,7 @@
 import threading
 import tkinter
+import os
+os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 from PIL import Image, ImageTk
 from matplotlib import image
@@ -10,8 +12,8 @@ import datetime
 import solenoid_valve
 import HSV_range
 
-oder_T = 2
-oder_B = 1
+oder_T = 1
+oder_B = 2
 oder_F = 4
 oder_R = 3
 
@@ -53,7 +55,7 @@ class Application(tkinter.Frame):
     center_line_thick = 2
 
     # 画像更新インターバル
-    roop_interval = 10   # [mS]
+    roop_interval = 5   # [mS]
 
     # -----------------------------------------------------------------------------------------------
 
@@ -68,7 +70,7 @@ class Application(tkinter.Frame):
     schedule_toku = []
     schedule_shu = []
     
-    def __init__(self, img, master=None):
+    def __init__(self, master=None):
 
         # ウィンドウ初期化
         super().__init__(master)
@@ -110,6 +112,8 @@ class Application(tkinter.Frame):
         menu_setting = tkinter.Menu(self.master)
         men.add_cascade(label="設定", menu=menu_setting)
         menu_setting.add_command(label="パラメータ設定", command=self.set_parameter)
+
+        
 
         # 画像更新処理開始
         self.update_picture()
@@ -163,8 +167,6 @@ class Application(tkinter.Frame):
         for i in range(len(self.schedule_toku)):
             if self.schedule_toku[i] < datetime.datetime.now():
                 Relay.pulse(1, self.sv_on_time)
-                # time.sleep(0.1)
-                # Relay.pulse(1, self.sv_on_time)
                 del_list.append(i)
         for i in del_list:
             del self.schedule_toku[i]
@@ -174,8 +176,6 @@ class Application(tkinter.Frame):
         for i in range(len(self.schedule_shu)):
             if self.schedule_shu[i] < datetime.datetime.now():
                 Relay.pulse(2, self.sv_on_time)
-                # time.sleep(0.1)
-                # Relay.pulse(2, self.sv_on_time)
                 del_list.append(i)
         for i in del_list:
             del self.schedule_shu[i]
@@ -198,6 +198,9 @@ class Application(tkinter.Frame):
     def identification(self):
 
         self.cam_F.get_grade_color_area()
+        self.cam_R.get_grade_color_area()
+        self.cam_T.get_grade_color_area()
+        self.cam_B.get_grade_color_area()
 
         # 3画面の果実のx位置が近ければ
         for c_info_F in self.cam_F.cherry_infos:
@@ -321,9 +324,7 @@ class Application(tkinter.Frame):
 
 if __name__ == "__main__":
 
-    img = cv2.imread("photo.jpg")
-
     root = tkinter.Tk()
-    app = Application(img, master=root)
+    app = Application(master=root)
 
     app.mainloop()        
