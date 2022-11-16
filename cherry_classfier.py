@@ -166,14 +166,14 @@ class Application(tkinter.Frame):
         # エアー制御予約の実行 (特秀)
         for sche in self.schedule_toku:
             if sche < datetime.datetime.now():
-                Relay.pulse(1, self.sv_on_time)
+                Relay.pulse_with_thread(1, self.sv_on_time)
                 self.schedule_toku.remove(sche)
 
         del_list = []
         # エアー制御予約の実行 (秀)
         for sche in self.schedule_shu:
             if sche < datetime.datetime.now():
-                Relay.pulse(2, self.sv_on_time)
+                Relay.pulse_with_thread(2, self.sv_on_time)
                 self.schedule_shu.remove(sche)
 
         self.view()

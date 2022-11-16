@@ -7,6 +7,7 @@
 
 import hid
 import time
+import threading
 
 class Relay():
 
@@ -52,6 +53,10 @@ def pulse(ch, on_time_s):
     relay.send_command(ch, "on")
     time.sleep(on_time_s)
     relay.send_command(ch, "off")
+
+def pulse_with_thread(ch, on_times_s):
+    th_pulse = threading.Thread(target=pulse, args=(ch, on_times_s, ))
+    th_pulse.start()
 
 if __name__ == "__main__":
 
