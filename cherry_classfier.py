@@ -25,7 +25,7 @@ class Application(tkinter.Frame):
     sv_on_time = 0.15   # [s]
 
     # カメラ中心-電磁弁位置 時間
-    delay_toku = 1.6 # [s]
+    delay_toku = 1.55 # [s]
     delay_shu = 2.6  # [s]
 
     # ウィンドウ表示イネーブル
@@ -120,12 +120,27 @@ class Application(tkinter.Frame):
 
     # 画像更新処理
     def update_picture(self):
-        
-        # 画像取得
+
         self.cam_T.get_img(flip=True)
         self.cam_B.get_img()
         self.cam_F.get_img(flip=True)
         self.cam_R.get_img()
+        
+        # 画像取得 (マルチスレッド)
+        # self.get_cherry_area(area_min=self.area_min)
+        th_cam_T = threading.Thread(target=self.cam_T.get_cherry_area, args=(self.area_min,))
+        th_cam_B = threading.Thread(target=self.cam_B.get_cherry_area, args=(self.area_min,))
+        th_cam_F = threading.Thread(target=self.cam_F.get_cherry_area, args=(self.area_min,))
+        th_cam_R = threading.Thread(target=self.cam_R.get_cherry_area, args=(self.area_min,))
+        th_cam_T.start()
+        th_cam_B.start()
+        th_cam_F.start()
+        th_cam_R.start()
+        th_cam_T.join()
+        th_cam_B.join()
+        th_cam_R.join()
+        th_cam_F.join()
+        
 
         # centerに来たら識別+エアー制御予約 (タスクリストに追加)
         for info in self.cam_F.cherry_infos:
@@ -193,10 +208,23 @@ class Application(tkinter.Frame):
     # 等級識別
     def identification(self):
 
-        self.cam_F.get_grade_color_area()
-        self.cam_R.get_grade_color_area()
-        self.cam_T.get_grade_color_area()
-        self.cam_B.get_grade_color_area()
+        # 各等級色領域取得
+        th_cam_F = threading.Thread(target=self.cam_F.get_grade_color_area)
+        th_cam_R = threading.Thread(target=self.cam_F.get_grade_color_area)
+        th_cam_T = threading.Thread(target=self.cam_F.get_grade_color_area)
+        th_cam_B = threading.Thread(target=self.cam_F.get_grade_color_area)
+        th_cam_F.start()
+        th_cam_R.start()
+        th_cam_T.start()
+        th_cam_B.start()
+        th_cam_F.join()
+        th_cam_R.join()
+        th_cam_T.join()
+        th_cam_B.join()
+        # self.cam_F.get_grade_color_area()
+        # self.cam_R.get_grade_color_area()
+        # self.cam_T.get_grade_color_area()
+        # self.cam_B.get_grade_color_area()
 
         # 3画面の果実のx位置が近ければ
         for c_info_F in self.cam_F.cherry_infos:

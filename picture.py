@@ -24,7 +24,7 @@ class picture():
     area_offset = 50
     
     # 画素ずれ余裕(さくらんぼ位置引き継ぎ時x座標)
-    continuity_x_offset = 10
+    continuity_x_offset = 30
 
     # hsv抽出範囲
     cherry_hsv_min = [145, 0, 0]
@@ -79,10 +79,9 @@ class picture():
         if flip==True:
             self.frame = cv2.flip(self.frame, 1)
         self.original = self.frame
-        self.get_cherry_area(area_min=self.area_min)
 
     # さくらんぼ領域取得
-    def get_cherry_area(self, area_min=50000):
+    def get_cherry_area(self, area_min):
 
         self.cherry_mask, self.masked_cherry, self.stats_cherry = self.detection(self.cherry_hsv_min, self.cherry_hsv_max, area_min = area_min)
         self.pic = {"original":self.original,
