@@ -20,8 +20,11 @@ class picture():
     # 文字サイズ
     fontscale = 1.75
 
-    # 画素ずれ余裕
+    # 画素ずれ余裕(さくらんぼ領域-hsv抽出領域)
     area_offset = 50
+    
+    # 画素ずれ余裕(さくらんぼ位置引き継ぎ時x座標)
+    continuity_x_offset = 10
 
     # hsv抽出範囲
     cherry_hsv_min = [145, 0, 0]
@@ -114,7 +117,7 @@ class picture():
 
             # 位置情報の引き継ぎ
             for old_cherry_info in self.old_cherry_infos:
-                if old_cherry_info["left"]<cherry_info["center_x"] and cherry_info["center_x"]<old_cherry_info["right"]:
+                if old_cherry_info["left"]-self.continuity_x_offset<cherry_info["center_x"] and cherry_info["center_x"]<old_cherry_info["right"]+self.continuity_x_offset:
                     cherry_info["centered"] = old_cherry_info["centered"]
                     cherry_info["grade"] = old_cherry_info["grade"]
 
