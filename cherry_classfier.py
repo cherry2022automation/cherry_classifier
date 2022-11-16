@@ -4,13 +4,11 @@ import os
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 from PIL import Image, ImageTk
-from matplotlib import image
 from picture import picture
 import time
 import Relay
 import datetime
 import solenoid_valve
-import HSV_range
 
 oder_T = 1
 oder_B = 2
@@ -113,8 +111,6 @@ class Application(tkinter.Frame):
         men.add_cascade(label="設定", menu=menu_setting)
         menu_setting.add_command(label="パラメータ設定", command=self.set_parameter)
 
-        
-
         # 画像更新処理開始
         self.update_picture()
 
@@ -127,7 +123,6 @@ class Application(tkinter.Frame):
         self.cam_R.get_img()
         
         # 画像取得 (マルチスレッド)
-        # self.get_cherry_area(area_min=self.area_min)
         th_cam_T = threading.Thread(target=self.cam_T.get_cherry_area, args=(self.area_min,))
         th_cam_B = threading.Thread(target=self.cam_B.get_cherry_area, args=(self.area_min,))
         th_cam_F = threading.Thread(target=self.cam_F.get_cherry_area, args=(self.area_min,))
@@ -141,7 +136,6 @@ class Application(tkinter.Frame):
         th_cam_R.join()
         th_cam_F.join()
         
-
         # centerに来たら識別+エアー制御予約 (タスクリストに追加)
         for info in self.cam_F.cherry_infos:
             if info["centered"]==False and self.width/2<info["center_x"]:
@@ -208,7 +202,7 @@ class Application(tkinter.Frame):
     # 等級識別
     def identification(self):
 
-        # 各等級色領域取得
+        # 各等級色領域取得(マルチスレッド)
         th_cam_F = threading.Thread(target=self.cam_F.get_grade_color_area)
         th_cam_R = threading.Thread(target=self.cam_F.get_grade_color_area)
         th_cam_T = threading.Thread(target=self.cam_F.get_grade_color_area)
@@ -221,10 +215,6 @@ class Application(tkinter.Frame):
         th_cam_R.join()
         th_cam_T.join()
         th_cam_B.join()
-        # self.cam_F.get_grade_color_area()
-        # self.cam_R.get_grade_color_area()
-        # self.cam_T.get_grade_color_area()
-        # self.cam_B.get_grade_color_area()
 
         # 3画面の果実のx位置が近ければ
         for c_info_F in self.cam_F.cherry_infos:
@@ -295,9 +285,6 @@ class Application(tkinter.Frame):
         self.setting_win = tkinter.Toplevel(self)
         self.setting_win.title("Modal Dialog") # ウィンドウタイトル
         self.setting_win.geometry("300x200")   # ウィンドウサイズ(幅x高さ)
-
-        # # モーダルにする設定
-        # self.setting_win.grab_set()        # モーダルにする
 
         self.label_sv_on_time = tkinter.Label(self.setting_win, text="電磁弁ON時間[s]")
         self.label_sv_on_time.grid(row=0, column=0, sticky=tkinter.E)
