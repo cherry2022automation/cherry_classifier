@@ -164,21 +164,17 @@ class Application(tkinter.Frame):
 
         del_list = []
         # エアー制御予約の実行 (特秀)
-        for i in range(len(self.schedule_toku)):
-            if self.schedule_toku[i] < datetime.datetime.now():
+        for sche in self.schedule_toku:
+            if sche < datetime.datetime.now():
                 Relay.pulse(1, self.sv_on_time)
-                del_list.append(i)
-        for i in del_list:
-            del self.schedule_toku[i]
+                self.schedule_toku.remove(sche)
 
         del_list = []
         # エアー制御予約の実行 (秀)
-        for i in range(len(self.schedule_shu)):
-            if self.schedule_shu[i] < datetime.datetime.now():
+        for sche in self.schedule_shu:
+            if sche < datetime.datetime.now():
                 Relay.pulse(2, self.sv_on_time)
-                del_list.append(i)
-        for i in del_list:
-            del self.schedule_shu[i]
+                self.schedule_shu.remove(sche)
 
         self.view()
 
