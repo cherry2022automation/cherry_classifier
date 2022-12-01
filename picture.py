@@ -28,8 +28,12 @@ class picture():
     # hsv抽出範囲
     cherry_hsv_min = [145, 0, 0]
     cherry_hsv_max = [20, 255, 255]
-    tokushu_hsv_min = [152, 120, 0]
-    tokushu_hsv_max = [170, 255, 200]
+    # サンプル果実用
+    # tokushu_hsv_min = [152, 120, 0]
+    # tokushu_hsv_max = [170, 255, 200]
+    # 冷凍果実用
+    tokushu_hsv_min = [110, 93, 0]
+    tokushu_hsv_max = [170, 255, 160]
     shu_hsv_min = [160, 168, 170]
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
