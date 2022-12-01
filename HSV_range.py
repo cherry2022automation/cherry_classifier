@@ -18,6 +18,8 @@ import sys
 
 class Application(ttk.Frame):
 
+    mask_color = (0, 255, 255)
+
     # スライドバー 長さ
     length_num = 200
 
@@ -157,6 +159,7 @@ class Application(ttk.Frame):
         mask2 = cv2.inRange(hsv, hsv_range_min_2, hsv_range_max_2)
         mask = mask1 + mask2
         masked_img = cv2.bitwise_and(self.cv2_image, self.cv2_image, mask=mask)
+        masked_img[mask==0]=self.mask_color
 
         # 表示
         cv2.namedWindow("HSV masked image", cv2.WINDOW_NORMAL)
