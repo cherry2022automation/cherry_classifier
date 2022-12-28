@@ -43,6 +43,8 @@ class Application(ttk.Frame):
 
     lb_val_width = 5
 
+    now_dir = "C:"
+
     def __init__(self, image=None, master=None, view=False):
         super().__init__(master)
         self.grid(row=0, column=0)
@@ -217,12 +219,12 @@ class Application(ttk.Frame):
 
         # 画像読み込み
         filetypes = [("Image file", ".bmp .png .jpg .tif"), ("Bitmap", ".bmp"), ("PNG", ".png"), ("JPEG", ".jpg"), ("Tiff", ".tif")]
-        dir = 'C:'
-        file_pass = filedialog.askopenfilename(title="画像ファイルを開く", filetypes=filetypes, initialdir=dir)          
+        file_pass = filedialog.askopenfilename(title="画像ファイルを開く", filetypes=filetypes, initialdir=self.now_dir)          
         image = cv2.imread(file_pass)
 
         if image is not None:
             self.cv2_image = image
+            self.now_dir = file_pass
 
         # 画面更新
         self.update_original_picture()
