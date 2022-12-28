@@ -130,13 +130,18 @@ class Application(ttk.Frame):
         self.sc_v_max.grid(row=self.row_max, column=self.column_v_sc, sticky=(N, E, S, W))
         self.sc_v_max.set(self.sv_max)
 
-        try:
-            if self.view_en==True:
-                cv2.namedWindow("original", cv2.WINDOW_NORMAL)
-                cv2.imshow("original", self.cv2_image)
-        except:
-            messagebox.showinfo("エラー", "画像の読み込みに失敗しました")
-            sys.exit()
+        # メニューバー作成
+        men = Menu(self)
+        self.master.config(menu=men)
+
+        menu_file = Menu(self)
+        men.add_cascade(label="ファイル", menu=menu_file)
+        menu_file.add_command(label="開く", command=self.open_file)
+
+        menu_setting = Menu(self)
+        men.add_cascade(label="設定", menu=menu_setting)
+        menu_setting.add_command(label="マスク色", command=self.update_mask_color)
+
 
     # 画面更新処理
     def update_screen(self):
@@ -147,10 +152,13 @@ class Application(ttk.Frame):
         self.label_v_min["text"] = int(self.val_v_min.get())
         self.label_v_max["text"] = int(self.val_v_max.get())
         if self.view_en==True:
-            self.update_picture()
+            self.update_masked_picture()
 
     # 画像更新処理
-    def update_picture(self):
+    def update_masked_picture(self):
+
+        if self.cv2_image is None:
+            return
 
         # マスク処理
         hsv = cv2.cvtColor(self.cv2_image, cv2.COLOR_BGR2HSV)
@@ -164,6 +172,18 @@ class Application(ttk.Frame):
         # 表示
         cv2.namedWindow("HSV masked image", cv2.WINDOW_NORMAL)
         cv2.imshow("HSV masked image", masked_img)
+
+    # 元画像更新
+    def update_original_picture(self):
+        if self.cv2_image is None:
+            return
+        try:
+            if self.view_en==True:
+                cv2.namedWindow("original", cv2.WINDOW_NORMAL)
+                cv2.imshow("original", self.cv2_image)
+        except:
+            messagebox.showinfo("エラー", "画像の読み込みに失敗しました")
+            sys.exit()
 
     # HSV抽出範囲取得
     def hsv_range(self):
@@ -193,15 +213,44 @@ class Application(ttk.Frame):
 
         return min_1, max_1, min_2, max_2
 
+    def open_file(self):
+
+        # 画像読み込み
+        filetypes = [("Image file", ".bmp .png .jpg .tif"), ("Bitmap", ".bmp"), ("PNG", ".png"), ("JPEG", ".jpg"), ("Tiff", ".tif")]
+        dir = 'C:'
+        file_pass = filedialog.askopenfilename(title="画像ファイルを開く", filetypes=filetypes, initialdir=dir)          
+        image = cv2.imread(file_pass)
+
+        if image is not None:
+            self.cv2_image = image
+
+        # 画面更新
+        self.update_original_picture()
+        self.update_screen()
+
+    # マスク色更新
+    def update_mask_color(self):
+
+        try:
+            r = int(input("R:"))
+            g = int(input("G:"))
+            b = int(input("B:"))
+
+            for i in [r,g,b]:
+                if i < 0:
+                    i=0
+                elif 255 < i:
+                    i=255
+            self.mask_color = (r,g,b)
+            self.update_screen()
+        except:
+            print("更新失敗：0~255を入力してください")
+
 if __name__ == "__main__":
 
-    # 画像読み込み, 表示
-    filetypes = [("Image file", ".bmp .png .jpg .tif"), ("Bitmap", ".bmp"), ("PNG", ".png"), ("JPEG", ".jpg"), ("Tiff", ".tif")]
-    dir = 'C:'
-    file_pass = filedialog.askopenfilename(title="画像ファイルを開く", filetypes=filetypes, initialdir=dir)          
-    image = cv2.imread(file_pass)
+    
 
     # ウィンドウ表示
     root = Tk()
-    app = Application(image=image, master=root, view=True)
+    app = Application(master=root, view=True)
     app.mainloop()
