@@ -69,4 +69,4 @@ if __name__ == "__main__":
             on_off = input("Relay (on or off) : ")
             relay.send_command(ch, on_off)
     except:
-        pass
+        print("error")
