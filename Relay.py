@@ -39,20 +39,26 @@ class Relay():
         send_data[2] = ch
         self.h.send_feature_report(send_data)
 
+def send_command_saferry(ch, on_off):
+    while 1:
+            try:
+                relay = Relay()
+                relay.send_command(ch, on_off)
+                break
+            except:
+                print("error & retry [" + ch + " " + on_off + "]")
+
 def on(ch):
-    relay = Relay()
-    relay.send_command(ch, "on")
+    send_command_saferry(ch, "on")
 
 def off(ch):
-    relay = Relay()
-    relay.send_command(ch, "off")
+    send_command_saferry(ch, "off")
 
 def pulse(ch, on_time_s):
 
-    relay = Relay()
-    relay.send_command(ch, "on")
+    send_command_saferry(ch, "on")
     time.sleep(on_time_s)
-    relay.send_command(ch, "off")
+    send_command_saferry(ch, "off")
 
 def pulse_with_thread(ch, on_times_s):
     th_pulse = threading.Thread(target=pulse, args=(ch, on_times_s, ))
@@ -60,13 +66,8 @@ def pulse_with_thread(ch, on_times_s):
 
 if __name__ == "__main__":
 
-    relay = Relay()
-
     # 命令送信
-    try:
-        while 1:
-            ch = input("channel (1 or 2) : ")
-            on_off = input("Relay (on or off) : ")
-            relay.send_command(ch, on_off)
-    except:
-        print("error")
+    while 1:
+        ch = input("channel (1 ~ 8) : ")
+        on_off = input("Relay (on or off) : ")
+        send_command_saferry(ch, on_off)
