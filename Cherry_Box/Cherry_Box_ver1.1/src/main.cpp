@@ -14,6 +14,8 @@ int sw = 2;
 int sw_ON = 0;
 int sw_OFF = 1;
 
+int flash_sycle = 500;
+
 void update_LED(int RYG){
 
   // LED Green
@@ -86,18 +88,30 @@ void loop()
      ans_mm = get_distance();
      Serial.println(ans_mm);
 
-     if(ans_mm < 100){
-        update_LED(0b0100);
+    // 満杯
+     if(ans_mm < 40){
+        update_LED(0b0101);
+        delay(flash_sycle);
+        update_LED(0b0001);
+        delay(flash_sycle);
      }
-     else if(ans_mm < 150){
-        update_LED(0b0010);
+     // 8割
+     else if(ans_mm < 55){
+        update_LED(0b0011);
+        delay(flash_sycle);
+        update_LED(0b0001);
+        delay(flash_sycle);
      }
+     // 8割以下 (通常)
      else{
         update_LED(0b0001);
      }
-
+     // 扉開字
      if (digitalRead(sw) == sw_ON){
-        update_LED(0b0111);
+        update_LED(0b0100);
+        delay(flash_sycle);
+        update_LED(0b0000);
+        delay(flash_sycle);
      }
      
      delay(100);
