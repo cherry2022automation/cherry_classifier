@@ -10,6 +10,9 @@ import Relay
 import datetime
 import solenoid_valve
 
+class solenoid_valve_control(solenoid_valve.solenoid_valve_control):
+    sv_num = 2
+
 class Application(tkinter.Frame):
 
     # ----------------------------------------------------------------------------------------------
@@ -309,7 +312,7 @@ class Application(tkinter.Frame):
     def sv_operation(self):
         window = tkinter.Toplevel(self)
         window.title("電磁弁操作")
-        app = solenoid_valve.solenoid_valve_control(window)
+        app = solenoid_valve_control(window)
 
         # モーダルにする設定
         window.grab_set()        # モーダルにする
