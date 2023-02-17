@@ -11,9 +11,8 @@ import datetime
 import solenoid_valve
 
 oder_T = 1
-oder_B = 2
-oder_F = 4
-oder_R = 3
+oder_F = 3
+oder_R = 2
 
 class Application(tkinter.Frame):
 
@@ -88,13 +87,11 @@ class Application(tkinter.Frame):
 
         # 画像オブジェクト生成
         self.cam_T = picture(oder_T, self.width, self.height, area_min=self.area_min)
-        self.cam_B = picture(oder_B, self.width, self.height, area_min=self.area_min)
         self.cam_F = picture(oder_F, self.width, self.height, area_min=self.area_min)
         self.cam_R = picture(oder_R, self.width, self.height, area_min=self.area_min)
 
         # カメラ初期化
         self.cam_T.cam_set()
-        self.cam_B.cam_set()
         self.cam_F.cam_set()
         self.cam_R.cam_set()
 
@@ -118,21 +115,17 @@ class Application(tkinter.Frame):
     def update_picture(self):
 
         self.cam_T.get_img(flip=True)
-        self.cam_B.get_img()
         self.cam_F.get_img(flip=True)
         self.cam_R.get_img()
         
         # 画像取得 (マルチスレッド)
         th_cam_T = threading.Thread(target=self.cam_T.get_cherry_area, args=(self.area_min,))
-        th_cam_B = threading.Thread(target=self.cam_B.get_cherry_area, args=(self.area_min,))
         th_cam_F = threading.Thread(target=self.cam_F.get_cherry_area, args=(self.area_min,))
         th_cam_R = threading.Thread(target=self.cam_R.get_cherry_area, args=(self.area_min,))
         th_cam_T.start()
-        th_cam_B.start()
         th_cam_F.start()
         th_cam_R.start()
         th_cam_T.join()
-        th_cam_B.join()
         th_cam_R.join()
         th_cam_F.join()
         
@@ -152,16 +145,11 @@ class Application(tkinter.Frame):
         self.cam_F.draw_result(box=self.draw_box_en, text=self.draw_text_en)
         self.cam_R.draw_result(box=self.draw_box_en, text=self.draw_text_en)
         self.cam_T.draw_result(box=self.draw_box_en, text=self.draw_text_en)
-        self.cam_B.draw_result(box=self.draw_box_en, text=self.draw_text_en)
 
         # 画像配置
         pic_T = self.cam_T.output_img
         self.img_tk_T = self.cv2_to_tk(self.draw_center_line(pic_T))
         self.canvas_T.create_image(0, 0, image=self.img_tk_T, anchor='nw') # ImageTk 画像配置
-
-        pic_B = self.cam_B.output_img
-        self.img_tk_B = self.cv2_to_tk(self.draw_center_line(pic_B))
-        self.canvas_B.create_image(0, 0, image=self.img_tk_B, anchor='nw') # ImageTk 画像配置
         
         pic_F = self.cam_F.output_img
         self.img_tk_F = self.cv2_to_tk(self.draw_center_line(pic_F))
@@ -206,15 +194,12 @@ class Application(tkinter.Frame):
         th_cam_F = threading.Thread(target=self.cam_F.get_grade_color_area)
         th_cam_R = threading.Thread(target=self.cam_F.get_grade_color_area)
         th_cam_T = threading.Thread(target=self.cam_F.get_grade_color_area)
-        th_cam_B = threading.Thread(target=self.cam_F.get_grade_color_area)
         th_cam_F.start()
         th_cam_R.start()
         th_cam_T.start()
-        th_cam_B.start()
         th_cam_F.join()
         th_cam_R.join()
         th_cam_T.join()
-        th_cam_B.join()
 
         # 3画面の果実のx位置が近ければ
         for c_info_F in self.cam_F.cherry_infos:
@@ -338,4 +323,4 @@ if __name__ == "__main__":
     root = tkinter.Tk()
     app = Application(master=root)
 
-    app.mainloop()        
+    app.mainloop()       
