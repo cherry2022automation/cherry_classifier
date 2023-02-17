@@ -1,7 +1,6 @@
 import cherry_classfier as cc
 import tkinter
 import Relay
-import solenoid_valve
 
 Relay.R_name = "USBRelay"
 

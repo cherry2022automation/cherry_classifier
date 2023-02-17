@@ -77,7 +77,7 @@ def pulse(ch, on_time_s):
 
 # 別スレッドを生成して1パルス
 def pulse_with_thread(ch, on_times_s):
-    th_pulse = threading.Thread(target=pulse, args=(ch, on_times_s, ))
+    th_pulse = threading.Thread(target=pulse, args=(ch, on_times_s))
     th_pulse.start()
 
 if __name__ == "__main__":
