@@ -23,7 +23,7 @@ class solenoid_valve_control(Frame):
 
         self.on_time_ms = StringVar()
         self.time_entry = ttk.Entry(self, textvariable=self.on_time_ms, width = 10, justify=RIGHT)
-        self.time_entry.insert(0, str(self.on_time_ms))
+        self.time_entry.insert(0, "100")
         self.time_entry.grid(row=0, column=2)
 
         self.label2 = ttk.Label(self, text="[ms]", padding=(5,2))
