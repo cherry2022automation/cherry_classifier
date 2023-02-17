@@ -11,7 +11,7 @@ import hid
 import time
 import threading
 
-# R_name = "USBRelay"   # 「USB-Relay-2」、「USB-Relay-8」とシルク印刷されているタイプ
+# R_name = "USBRelay"     # 「USB-Relay-2」、「USB-Relay-8」とシルク印刷されているタイプ
 R_name = "HIDRelay"     # 「USB Relay QYF-UR02」とシルク印刷されているタイプ
 
 class Relay():
@@ -60,9 +60,9 @@ def send_command_saferry(ch, on_off):
             try:
                 relay = Relay(R_name=R_name)
                 relay.send_command(ch, on_off)
-                break
-            except:
-                print("error & retry [" + ch + " " + on_off + "]")
+                break   # 正常に送信完了
+            except:     # エラー発生 もう一度送信
+                print("error & retry [" + str(ch) + " " + on_off + "]")
 
 def on(ch):
     send_command_saferry(ch, "on")
@@ -71,11 +71,11 @@ def off(ch):
     send_command_saferry(ch, "off")
 
 def pulse(ch, on_time_s):
-
     send_command_saferry(ch, "on")
     time.sleep(on_time_s)
     send_command_saferry(ch, "off")
 
+# 別スレッドを生成して1パルス
 def pulse_with_thread(ch, on_times_s):
     th_pulse = threading.Thread(target=pulse, args=(ch, on_times_s, ))
     th_pulse.start()

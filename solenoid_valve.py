@@ -4,9 +4,11 @@ from tkinter import messagebox, ttk
 from tkinter import *
 import Relay
 
-# from pyparsing import col
-
 class solenoid_valve_control(Frame):
+
+    font_size = 20
+    sv_num = 8
+    on_time_ms = 100
 
     def __init__(self, master=None):
 
@@ -16,15 +18,12 @@ class solenoid_valve_control(Frame):
         self.master.title('電磁弁操作')
         self.pack()
 
-        font_size = 20
-        sv_num = 8
-
         self.label1 = ttk.Label(self, text="on time", padding=(5,2))
         self.label1.grid(row=0, column=1, sticky=E)
 
         self.on_time_ms = StringVar()
         self.time_entry = ttk.Entry(self, textvariable=self.on_time_ms, width = 10, justify=RIGHT)
-        self.time_entry.insert(0, "30")
+        self.time_entry.insert(0, str(self.on_time_ms))
         self.time_entry.grid(row=0, column=2)
 
         self.label2 = ttk.Label(self, text="[ms]", padding=(5,2))
@@ -37,12 +36,11 @@ class solenoid_valve_control(Frame):
         self.button_off = []
 
 
-        for i in range(8):
+        for i in range(self.sv_num):
 
             self.label_sv_num.append(ttk.Label(self, text="SV"+str(i+1), padding=(5,2)))
             self.label_sv_num[i].grid(row=i+1, column=0, sticky=E)
 
-            # self.button_pulse.append(ttk.Button(self, text="Pulse", command=lambda:self.sv_pulse(i_num,int(self.on_time_ms.get()))))
             self.button_pulse.append(ttk.Button(self, text="Pulse", command=self.sv_pulse(i)))
             self.button_pulse[i].grid(row=i+1, column=1, sticky=E)
             
