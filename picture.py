@@ -25,19 +25,22 @@ class picture():
     # 画素ずれ余裕(さくらんぼ位置引き継ぎ時x座標)
     continuity_x_offset = 30
 
-    # hsv抽出範囲
+    # hsv抽出範
+    # サンプル果実用
     cherry_hsv_min = [145, 0, 0]
     cherry_hsv_max = [20, 255, 255]
-    # サンプル果実用
-    # tokushu_hsv_min = [152, 120, 0]
-    # tokushu_hsv_max = [170, 255, 200]
-    # 冷凍果実用
-    tokushu_hsv_min = [110, 93, 0]
-    tokushu_hsv_max = [170, 255, 160]
+    tokushu_hsv_min = [152, 120, 0]
+    tokushu_hsv_max = [170, 255, 200]
     shu_hsv_min = [160, 168, 170]
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [17, 255, 255]
+
+    # 冷凍果実用
+    # cherry_hsv_min = [110, 93, 0]
+    # cherry_hsv_max = [170, 231, 160]
+    # tokushu_hsv_min = [110, 93, 0]
+    # tokushu_hsv_max = [170, 231, 160]
 
     # ---------------------------------------------------------------
 
