@@ -2,47 +2,63 @@
 # Relay.py
 # USBリレーライブラリ
 #
-# 2022/10/13 T19JM042 長谷季樹
+# 2023/02/17 T19JM042 長谷季樹
+#
+# 参考：https://jj8xnp.github.io/AmateurRadio/USB_Relay_CW.html
 # =================================================
 
 import hid
 import time
 import threading
 
+# R_name = "USBRelay"   # 「USB-Relay-2」、「USB-Relay-8」とシルク印刷されているタイプ
+R_name = "HIDRelay"     # 「USB Relay QYF-UR02」とシルク印刷されているタイプ
+
 class Relay():
 
-    vendor_ID = 0x16c0
-    product_ID = 0x05df
-    command_on = 0xff
-    command_off = 0xfd
-    h = None
+    USBRelay_ID = {"vendor":0x16c0, "product":0x05df}
+    HIDRelay_ID = {"vendor":0x519, "product":0x2018}
+    ID = {"USBRelay":USBRelay_ID, "HIDRelay":HIDRelay_ID}
 
-    def __init__(self):
+    h = None
+    R_name = None
+
+    def __init__(self, R_name="USBRelay"):
+
+        self.R_name = R_name
 
         # 初期化
         self.h = hid.device()
-        self.h.open(self.vendor_ID, self.product_ID)
+        self.h.open(self.ID[R_name]["vendor"], self.ID[R_name]["product"])
 
     def send_command(self, ch, on_off):
 
         ch = int(ch)
-
-        if on_off == "on":
-            command = self.command_on
-        elif on_off == "off":
-            command = self.command_off
-        else:
-            return
-
         send_data = [0] * 9
-        send_data[1] = command
-        send_data[2] = ch
-        self.h.send_feature_report(send_data)
+
+        if self.R_name == "USBRelay":
+            if on_off == "on":
+                send_data[1] = 0xff
+            elif on_off == "off":
+                send_data[1] = 0xfd
+            else:
+                return
+            send_data[2] = ch
+            self.h.send_feature_report(send_data)
+
+        if self.R_name == "HIDRelay":
+            if on_off == "on":
+                send_data[1] = 0xf0 + ch
+            elif on_off == "off":
+                send_data[1] = 0x00 + ch
+            else:
+                return
+            self.h.write(send_data)
 
 def send_command_saferry(ch, on_off):
     while 1:
             try:
-                relay = Relay()
+                relay = Relay(R_name=R_name)
                 relay.send_command(ch, on_off)
                 break
             except:
