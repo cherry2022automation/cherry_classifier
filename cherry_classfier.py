@@ -10,13 +10,14 @@ import Relay
 import datetime
 import solenoid_valve
 
-oder_T = 1
-oder_F = 3
-oder_R = 2
-
 class Application(tkinter.Frame):
 
     # ----------------------------------------------------------------------------------------------
+
+    # カメラ番号
+    oder_T = 1
+    oder_F = 3
+    oder_R = 2
 
     # エアー電磁弁ON時間
     sv_on_time = 0.15   # [s]
@@ -86,9 +87,9 @@ class Application(tkinter.Frame):
         self.canvas_B.grid(row=1, column=1)
 
         # 画像オブジェクト生成
-        self.cam_T = picture(oder_T, self.width, self.height, area_min=self.area_min)
-        self.cam_F = picture(oder_F, self.width, self.height, area_min=self.area_min)
-        self.cam_R = picture(oder_R, self.width, self.height, area_min=self.area_min)
+        self.cam_T = picture(self.oder_T, self.width, self.height, area_min=self.area_min)
+        self.cam_F = picture(self.oder_F, self.width, self.height, area_min=self.area_min)
+        self.cam_R = picture(self.oder_R, self.width, self.height, area_min=self.area_min)
 
         # カメラ初期化
         self.cam_T.cam_set()
@@ -323,4 +324,4 @@ if __name__ == "__main__":
     root = tkinter.Tk()
     app = Application(master=root)
 
-    app.mainloop()       
+    app.mainloop()
