@@ -23,13 +23,14 @@ result = copy.copy(pic.original)
 
 for cherry_info in pic.cherry_infos:
 
-
+    # 花柄輪郭抽出
     contours, hierarchy = cv2.findContours(pic.flower_pattern_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    
+    # 果実中心座標
     cherry_x = int(cherry_info["center_x"])
     cherry_y = int(cherry_info["center_y"])
 
+    # 果実中心ー花柄根本 最短距離計算→根本座標取得
     floral_base_dist_min = None
     floral_base_x = None
     floral_base_y = None
@@ -44,6 +45,7 @@ for cherry_info in pic.cherry_infos:
                 floral_base_y = y2
     # print(floral_base_x, floral_base_y)
 
+    # 花柄根本座標が遠すぎる場合は花柄無しとする
     if cherry_info["width"] < floral_base_dist_min:
         continue
 
@@ -51,6 +53,7 @@ for cherry_info in pic.cherry_infos:
     cv2.circle(result,center=(floral_base_x,floral_base_y),radius=10,color=draw_color,thickness=3)
     cv2.line(result, (cherry_x, cherry_y), (floral_base_x, floral_base_y), draw_color, 3, cv2.LINE_4)
 
+    # 赤道線(マスク用)1次関数計算
     a = (floral_base_y - cherry_y)/(floral_base_x - cherry_x)
     a = -(1/a)
     b = cherry_y - a*cherry_x
@@ -60,12 +63,13 @@ for cherry_info in pic.cherry_infos:
     pt2_y = int(a * pt2_x + b)
     # cv2.line(result, (pt1_x, pt1_y), (pt2_x, pt2_y), draw_color, 3, cv2.LINE_4)
 
+    # 赤道線マスク画像生成
     mask=np.zeros((1080,1920),dtype=np.uint8)
     equator_mask = copy.copy(pic.cherry_mask)
     cv2.line(mask, (pt1_x, pt1_y), (pt2_x, pt2_y), 255, 1, cv2.LINE_4)
     equator_mask[mask==0] = [0]
 
-
+    # 赤道径(pixel)取得
     contours, hierarchy = cv2.findContours(equator_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
     rect = cv2.minAreaRect(contours[0])
     box = cv2.boxPoints(rect)
