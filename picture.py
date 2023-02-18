@@ -3,6 +3,7 @@ os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 import cv2
 import numpy as np
 import copy
+import math
 
 class picture():
 
@@ -15,6 +16,7 @@ class picture():
     result_color_shu = (0, 165, 255)
     result_color_hane = (0, 255, 255)
     char_color = (0,0,0)
+    size_guide_color = (255,0,0)
 
     # 文字サイズ
     fontscale = 1.75
@@ -116,14 +118,21 @@ class picture():
                             "right":cherry_label_info["right"],
                             "top":cherry_label_info["top"],
                             "bottom":cherry_label_info["bottom"],
-                            "center_x":cherry_label_info["center_x"],
-                            "center_y":cherry_label_info["center_y"],
+                            "center_x":int(cherry_label_info["center_x"]),
+                            "center_y":int(cherry_label_info["center_y"]),
                             "width":cherry_label_info["right"]-cherry_label_info["left"],
                             "height":cherry_label_info["bottom"]-cherry_label_info["top"],
                             "toku_area":0,
                             "shu_area":0,
                             "hane_area":0,
                             "grade":"",
+                            "Floral_base_x":None,
+                            "Floral_base_y":None,
+                            "diameter_edge1_x":None,
+                            "diameter_edge1_y":None,
+                            "diameter_edge2_x":None,
+                            "diameter_edge2_y":None,
+                            "diameter_pixel":None,
                             "centered":False}
 
             # 位置情報の引き継ぎ
@@ -134,8 +143,81 @@ class picture():
 
             self.cherry_infos.append(cherry_info)
 
+    # 花柄領域取得
     def get_flower_pattern_area(self, area_min):
         self.flower_pattern_mask, self.masked_flower_pattern, self.stats_flower_pattern = self.detection(self.flower_pattern_hsv_min, self.flower_pattern_hsv_max, area_min = area_min)
+
+    # 赤道径取得
+    def get_diameter(self):
+        self.get_flower_pattern_area(50)
+
+        for cherry_info in self.cherry_infos:
+
+            # 花柄輪郭抽出
+            contours, hierarchy = cv2.findContours(self.flower_pattern_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            # 果実中心座標
+            cherry_x = int(cherry_info["center_x"])
+            cherry_y = int(cherry_info["center_y"])
+
+            # 果実中心ー花柄根本 最短距離計算→根本座標取得
+            floral_base_dist_min = None
+            floral_base_x = None
+            floral_base_y = None
+            for contour in contours:
+                for floral_outline_xy in contour:
+                    x2 = floral_outline_xy[0][0]
+                    y2 = floral_outline_xy[0][1]
+                    d = math.sqrt((x2 - cherry_x) ** 2 + (y2 - cherry_y) ** 2)
+                    if floral_base_dist_min is None or d < floral_base_dist_min:
+                        floral_base_dist_min = d
+                        floral_base_x = x2
+                        floral_base_y = y2
+            # print(floral_base_x, floral_base_y)
+
+            # 花柄根本座標が遠すぎる場合は花柄無しとする
+            if cherry_info["width"] < floral_base_dist_min:
+                continue
+            cherry_info["Floral_base_x"] = floral_base_x
+            cherry_info["Floral_base_y"] = floral_base_y
+
+            # cv2.circle(result,center=(cherry_x,cherry_y),radius=10,color=draw_color,thickness=-1)
+            # cv2.circle(result,center=(floral_base_x,floral_base_y),radius=10,color=draw_color,thickness=3)
+            # cv2.line(result, (cherry_x, cherry_y), (floral_base_x, floral_base_y), draw_color, 3, cv2.LINE_4)
+
+            # 赤道線(マスク用)1次関数計算
+            a = (floral_base_y - cherry_y)/(floral_base_x - cherry_x)
+            a = -(1/a)
+            b = cherry_y - a*cherry_x
+            pt1_x = int(cherry_info["left"] - cherry_info["width"]*0.1)
+            pt1_y = int(a * pt1_x + b)
+            pt2_x = int(cherry_info["right"] + cherry_info["width"]*0.1)
+            pt2_y = int(a * pt2_x + b)
+            # cv2.line(result, (pt1_x, pt1_y), (pt2_x, pt2_y), draw_color, 3, cv2.LINE_4)
+
+            # 赤道線マスク画像生成
+            mask=np.zeros((self.height,self.width),dtype=np.uint8)
+            equator_mask = copy.copy(self.cherry_mask)
+            cv2.line(mask, (pt1_x, pt1_y), (pt2_x, pt2_y), 255, 1, cv2.LINE_4)
+            equator_mask[mask==0] = [0]
+
+            # 赤道径(pixel)取得
+            contours, hierarchy = cv2.findContours(equator_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+            rect = cv2.minAreaRect(contours[0])
+            box = cv2.boxPoints(rect)
+            pt1_x=box[0][0]
+            pt1_y=box[0][1]
+            pt2_x=box[1][0]
+            pt2_y=box[1][1]
+            d = math.sqrt((pt2_x - pt1_x) ** 2 + (pt2_y - pt1_y) ** 2)
+
+            cherry_info["diameter_edge1_x"] = int(pt1_x)
+            cherry_info["diameter_edge1_y"] = int(pt1_y)
+            cherry_info["diameter_edge2_x"] = int(pt2_x)
+            cherry_info["diameter_edge2_y"] = int(pt2_y)
+            cherry_info["diameter_pixel"] = d
+
+            # cv2.line(result, (int(pt1_x), int(pt1_y)), (int(pt2_x), int(pt2_y)), draw_color, 3, cv2.LINE_4)
 
     # 等級色の取得
     def get_grade_color_area(self):
@@ -175,7 +257,7 @@ class picture():
                             cherry_info["hane_area"] += r_info["area"]
 
     # 結果の描画
-    def draw_result(self, box=True, text=True):
+    def draw_result(self, box=True, text=True, size_guide=True):
         # 表示用画像
         self.output_img = copy.copy(self.original)
 
@@ -203,6 +285,12 @@ class picture():
                 LeftTop = (c_info["left"], c_info["top"])
                 RightButtom = (c_info["right"], c_info["bottom"])
                 cv2.rectangle(self.output_img, LeftTop, RightButtom, color, thickness=5)
+
+            if size_guide==True and c_info["diameter_pixel"] is not None:
+                cv2.circle(self.output_img,center=(c_info["center_x"],c_info["center_y"]),radius=10,color=self.size_guide_color,thickness=-1)
+                cv2.circle(self.output_img,center=(c_info["Floral_base_x"],c_info["Floral_base_y"]),radius=10,color=self.size_guide_color,thickness=3)
+                cv2.line(self.output_img, (c_info["center_x"], c_info["center_y"]), (c_info["Floral_base_x"],c_info["Floral_base_y"]), self.size_guide_color, 3, cv2.LINE_4)
+                cv2.line(self.output_img, (c_info["diameter_edge1_x"], c_info["diameter_edge1_y"]), (c_info["diameter_edge2_x"], c_info["diameter_edge2_y"]), self.size_guide_color, 3, cv2.LINE_4)
 
         return self.output_img
 
