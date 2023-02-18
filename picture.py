@@ -35,6 +35,8 @@ class picture():
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [17, 255, 255]
+    flower_pattern_hsv_min = [90, 110, 90]
+    flower_pattern_hsv_max = [110, 235, 245]
 
     # 冷凍果実用
     # cherry_hsv_min = [110, 93, 0]
@@ -95,10 +97,12 @@ class picture():
                     "toku mask":None,
                     "shu mask":None,
                     "hane mask":None,
+                    "flower pattern mask":None,
                     "masked cherry":self.masked_cherry,
                     "masked toku":None,
                     "masked shu":None,
-                    "masked hane":None}
+                    "masked hane":None,
+                    "masked flower pattern":None}
 
         self.old_cherry_infos = self.cherry_infos
         self.cherry_infos = []
@@ -114,6 +118,8 @@ class picture():
                             "bottom":cherry_label_info["bottom"],
                             "center_x":cherry_label_info["center_x"],
                             "center_y":cherry_label_info["center_y"],
+                            "width":cherry_label_info["right"]-cherry_label_info["left"],
+                            "height":cherry_label_info["bottom"]-cherry_label_info["top"],
                             "toku_area":0,
                             "shu_area":0,
                             "hane_area":0,
@@ -127,6 +133,9 @@ class picture():
                     cherry_info["grade"] = old_cherry_info["grade"]
 
             self.cherry_infos.append(cherry_info)
+
+    def get_flower_pattern_area(self, area_min):
+        self.flower_pattern_mask, self.masked_flower_pattern, self.stats_flower_pattern = self.detection(self.flower_pattern_hsv_min, self.flower_pattern_hsv_max, area_min = area_min)
 
     # 等級色の取得
     def get_grade_color_area(self):
@@ -205,8 +214,11 @@ class picture():
         if area_min != None:
             for i, row in enumerate(stats):
                 if row[cv2.CC_STAT_AREA] < area_min:
-                    del_list.append(i)         
+                    del_list.append(i)
+                    mask[labels==i] = 0
         stats = np.delete(stats, del_list, 0)
+        masked_img[mask==0] = [0,0,0]
+
         return mask, masked_img, stats
 
     # hsv指定範囲でマスク処理
