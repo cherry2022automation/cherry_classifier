@@ -19,7 +19,7 @@ class picture():
     size_guide_color = (255,0,0)
 
     # 文字サイズ
-    fontscale = 1.75
+    fontscale = 1
 
     # 画素ずれ余裕(さくらんぼ領域-hsv抽出領域)
     area_offset = 50
@@ -30,21 +30,23 @@ class picture():
     # hsv抽出範
     # サンプル果実用
     cherry_hsv_min = [145, 0, 0]
-    cherry_hsv_max = [20, 255, 255]
+    cherry_hsv_max = [30, 255, 255]
     tokushu_hsv_min = [152, 120, 0]
     tokushu_hsv_max = [170, 255, 200]
     shu_hsv_min = [160, 168, 170]
     shu_hsv_max = [178, 255, 255]
     hane_hsv_min = [177, 0, 0]
     hane_hsv_max = [17, 255, 255]
-    flower_pattern_hsv_min = [90, 110, 90]
-    flower_pattern_hsv_max = [110, 235, 245]
+    flower_pattern_hsv_min = [90, 50, 150]
+    flower_pattern_hsv_max = [100, 255, 210]
 
     # 冷凍果実用
     # cherry_hsv_min = [110, 93, 0]
     # cherry_hsv_max = [170, 231, 160]
     # tokushu_hsv_min = [110, 93, 0]
     # tokushu_hsv_max = [170, 231, 160]
+
+    flower_area_min = 50
 
     # ---------------------------------------------------------------
 
@@ -133,6 +135,7 @@ class picture():
                             "diameter_edge2_x":None,
                             "diameter_edge2_y":None,
                             "diameter_pixel":None,
+                            "size":None,
                             "centered":False}
 
             # 位置情報の引き継ぎ
@@ -140,16 +143,19 @@ class picture():
                 if old_cherry_info["left"]-self.continuity_x_offset<cherry_info["center_x"] and cherry_info["center_x"]<old_cherry_info["right"]+self.continuity_x_offset:
                     cherry_info["centered"] = old_cherry_info["centered"]
                     cherry_info["grade"] = old_cherry_info["grade"]
+                    cherry_info["size"] = old_cherry_info["size"]
 
             self.cherry_infos.append(cherry_info)
 
     # 花柄領域取得
     def get_flower_pattern_area(self, area_min):
         self.flower_pattern_mask, self.masked_flower_pattern, self.stats_flower_pattern = self.detection(self.flower_pattern_hsv_min, self.flower_pattern_hsv_max, area_min = area_min)
+        self.pic["flower pattern mask"] = self.flower_pattern_mask
+        self.pic["masked flower pattern"] = self.masked_flower_pattern
 
     # 赤道径取得
     def get_diameter(self):
-        self.get_flower_pattern_area(50)
+        self.get_flower_pattern_area(self.flower_area_min)
 
         for cherry_info in self.cherry_infos:
 
@@ -176,48 +182,73 @@ class picture():
             # print(floral_base_x, floral_base_y)
 
             # 花柄根本座標が遠すぎる場合は花柄無しとする
-            if cherry_info["width"] < floral_base_dist_min:
+            if floral_base_dist_min is None or cherry_info["width"]*1.5 < floral_base_dist_min:
                 continue
             cherry_info["Floral_base_x"] = floral_base_x
             cherry_info["Floral_base_y"] = floral_base_y
 
-            # cv2.circle(result,center=(cherry_x,cherry_y),radius=10,color=draw_color,thickness=-1)
-            # cv2.circle(result,center=(floral_base_x,floral_base_y),radius=10,color=draw_color,thickness=3)
-            # cv2.line(result, (cherry_x, cherry_y), (floral_base_x, floral_base_y), draw_color, 3, cv2.LINE_4)
-
             # 赤道線(マスク用)1次関数計算
-            a = (floral_base_y - cherry_y)/(floral_base_x - cherry_x)
-            a = -(1/a)
-            b = cherry_y - a*cherry_x
-            pt1_x = int(cherry_info["left"] - cherry_info["width"]*0.1)
-            pt1_y = int(a * pt1_x + b)
-            pt2_x = int(cherry_info["right"] + cherry_info["width"]*0.1)
-            pt2_y = int(a * pt2_x + b)
-            # cv2.line(result, (pt1_x, pt1_y), (pt2_x, pt2_y), draw_color, 3, cv2.LINE_4)
+            if floral_base_x==cherry_x:     # ゼロ除算回避
+                a=0
+            else:
+                a = (floral_base_y - cherry_y)/(floral_base_x - cherry_x)
+                if a==0:
+                    a=math.inf
+                else:
+                    a = -(1/a)
+            
+            if a==math.inf or a==np.inf:    # 赤道径が縦線の場合
+                d=cherry_info["height"]
+                cherry_info["diameter_edge1_x"] = int(cherry_info["center_x"])
+                cherry_info["diameter_edge1_y"] = int(cherry_info["top"])
+                cherry_info["diameter_edge2_x"] = int(cherry_info["center_x"])
+                cherry_info["diameter_edge2_y"] = int(cherry_info["bottom"])
 
-            # 赤道線マスク画像生成
-            mask=np.zeros((self.height,self.width),dtype=np.uint8)
-            equator_mask = copy.copy(self.cherry_mask)
-            cv2.line(mask, (pt1_x, pt1_y), (pt2_x, pt2_y), 255, 1, cv2.LINE_4)
-            equator_mask[mask==0] = [0]
+            else:   # その他(基本こっち)
 
-            # 赤道径(pixel)取得
-            contours, hierarchy = cv2.findContours(equator_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
-            rect = cv2.minAreaRect(contours[0])
-            box = cv2.boxPoints(rect)
-            pt1_x=box[0][0]
-            pt1_y=box[0][1]
-            pt2_x=box[1][0]
-            pt2_y=box[1][1]
-            d = math.sqrt((pt2_x - pt1_x) ** 2 + (pt2_y - pt1_y) ** 2)
+                b = cherry_y - a*cherry_x
+                pt1_x = int(cherry_info["left"] - cherry_info["width"]*0.1)
+                pt1_y = int(a * pt1_x + b)
+                pt2_x = int(cherry_info["right"] + cherry_info["width"]*0.1)
+                pt2_y = int(a * pt2_x + b)
 
-            cherry_info["diameter_edge1_x"] = int(pt1_x)
-            cherry_info["diameter_edge1_y"] = int(pt1_y)
-            cherry_info["diameter_edge2_x"] = int(pt2_x)
-            cherry_info["diameter_edge2_y"] = int(pt2_y)
+                # 赤道線マスク画像生成
+                height, width, channels = self.original.shape[:3]
+                mask=np.zeros((height,width),dtype=np.uint8)
+                equator_mask = copy.copy(self.cherry_mask)
+                cv2.line(mask, (pt1_x, pt1_y), (pt2_x, pt2_y), 255, 1, cv2.LINE_4)
+                equator_mask[mask==0] = [0]
+
+                # 赤道径(pixel)取得
+                contours, hierarchy = cv2.findContours(equator_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+                area_max_num = 0
+                for i in range(len(contours)):
+                    if cv2.contourArea(contours[area_max_num]) < cv2.contourArea(contours[i]):
+                        area_max_num = i
+                rect = cv2.minAreaRect(contours[i])
+                box = cv2.boxPoints(rect)
+                pt1_x=box[0][0]
+                pt1_y=box[0][1]
+                pt2_x=box[1][0]
+                pt2_y=box[1][1]
+                pt3_x=box[2][0]
+                pt3_y=box[2][1]
+                d12 = math.sqrt((pt2_x - pt1_x) ** 2 + (pt2_y - pt1_y) ** 2)
+                d13 = math.sqrt((pt3_x - pt1_x) ** 2 + (pt3_y - pt1_y) ** 2)
+
+                if d13 < d12:
+                    d=d12
+                    cherry_info["diameter_edge2_x"] = int(pt2_x)
+                    cherry_info["diameter_edge2_y"] = int(pt2_y)
+                else:
+                    d=d13
+                    cherry_info["diameter_edge2_x"] = int(pt3_x)
+                    cherry_info["diameter_edge2_y"] = int(pt3_y)
+
+                cherry_info["diameter_edge1_x"] = int(pt1_x)
+                cherry_info["diameter_edge1_y"] = int(pt1_y)
+
             cherry_info["diameter_pixel"] = d
-
-            # cv2.line(result, (int(pt1_x), int(pt1_y)), (int(pt2_x), int(pt2_y)), draw_color, 3, cv2.LINE_4)
 
     # 等級色の取得
     def get_grade_color_area(self):
@@ -274,7 +305,7 @@ class picture():
 
             if text==True:
                 cv2.putText(self.output_img,
-                            text=c_info["grade"],
+                            text="{} {}".format(c_info["grade"], c_info["size"]),
                             org=(c_info["left"], c_info["top"]-10),
                             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                             fontScale=self.fontscale,
@@ -305,8 +336,10 @@ class picture():
                     del_list.append(i)
                     mask[labels==i] = 0
         stats = np.delete(stats, del_list, 0)
-        masked_img[mask==0] = [0,0,0]
-
+        if self.use_masked_img == True:
+            masked_img[mask==0] = [0,0,0]
+        else:
+            masked_img = None
         return mask, masked_img, stats
 
     # hsv指定範囲でマスク処理

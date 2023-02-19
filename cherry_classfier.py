@@ -66,9 +66,11 @@ class Application(tkinter.Frame):
     # 電磁弁タスクスケジュールリスト
     sche_toku = []
     sche_shu = []
-    schedule = {"tokushu":sche_toku, "shu":sche_shu}
-    sv_num = {"tokushu":1, "shu":2}
-    delay = {"tokushu":1.55, "shu":2.6}
+    sche_hane = []
+    sche_error = []
+    schedule = {"":sche_error, "tokushu":sche_toku, "shu":sche_shu, "hanedashi":sche_hane}
+    sv_num = {"":0, "tokushu":1, "shu":2, "hanedashi":0}
+    delay = {"":1, "tokushu":1.55, "shu":2.6, "hanedashi":1}
     
     def __init__(self, master=None):
 
@@ -131,14 +133,17 @@ class Application(tkinter.Frame):
         th_cam_T.join()
         th_cam_R.join()
         th_cam_F.join()
+
+        # 赤道径取得
+        self.size_identification()
         
         # centerに来たら識別+エアー制御予約 (タスクリストに追加)
         for info in self.cam_F.cherry_infos:
             if info["centered"]==False and self.width/2<info["center_x"]:
 
-                # 等級識別
-                self.identification()
-                print("detect {}".format(info["grade"]))
+                # 等級識別+サイズ識別
+                self.grade_identification()
+                print("detect {} size:{}".format(info["grade"], info["size"]))
                 self.scheduling(info)
                 info["centered"]=True
 
@@ -184,12 +189,12 @@ class Application(tkinter.Frame):
         self.schedule[info["grade"]].append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay[info["grade"]]))
         
     # 等級識別
-    def identification(self):
+    def grade_identification(self):
 
         # 各等級色領域取得(マルチスレッド)
         th_cam_F = threading.Thread(target=self.cam_F.get_grade_color_area)
-        th_cam_R = threading.Thread(target=self.cam_F.get_grade_color_area)
-        th_cam_T = threading.Thread(target=self.cam_F.get_grade_color_area)
+        th_cam_R = threading.Thread(target=self.cam_R.get_grade_color_area)
+        th_cam_T = threading.Thread(target=self.cam_T.get_grade_color_area)
         th_cam_F.start()
         th_cam_R.start()
         th_cam_T.start()
@@ -224,6 +229,53 @@ class Application(tkinter.Frame):
                                 c_info_R["grade"] = grade
                                 c_info_T["grade"] = grade
 
+    def size_identification(self):
+
+        # 赤道径[pixel]取得(マルチスレッド)
+        th_cam_F = threading.Thread(target=self.cam_F.get_diameter)
+        th_cam_R = threading.Thread(target=self.cam_R.get_diameter)
+        th_cam_T = threading.Thread(target=self.cam_T.get_diameter)
+        th_cam_F.start()
+        th_cam_R.start()
+        th_cam_T.start()
+        th_cam_F.join()
+        th_cam_R.join()
+        th_cam_T.join()
+
+        # 3画面の果実のx位置が近ければ
+        for c_info_F in self.cam_F.cherry_infos:
+            for c_info_R in self.cam_R.cherry_infos:
+                for c_info_T in self.cam_T.cherry_infos:
+
+                    # 画面中央のもののみ
+                    if c_info_F["centered"]==False and self.width/2<c_info_F["center_x"]:
+
+                        if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_R["right"]:
+                            if c_info_T["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_T["right"]:
+                                pixel_list = [c_info_F["diameter_pixel"], c_info_R["diameter_pixel"], c_info_T["diameter_pixel"]]
+                                pixel_list = list(filter(None, pixel_list))
+                                
+                                c_info_T["size"]="?"
+                                c_info_F["size"]="?"
+                                c_info_R["size"]="?"
+
+                                if len(pixel_list)==0:
+                                    continue
+                                pixel = max(pixel_list)
+                                if pixel < 70:
+                                    size = "M"
+                                elif pixel < 100:
+                                    size = "L"
+                                elif pixel < 120:
+                                    size = "LL"
+
+                                c_info_T["diameter_pixel"]=pixel
+                                c_info_F["diameter_pixel"]=pixel
+                                c_info_R["diameter_pixel"]=pixel
+                                c_info_T["size"]=size
+                                c_info_F["size"]=size
+                                c_info_R["size"]=size
+
     # 画像変換 OpenCV→tkinter
     def cv2_to_tk(self, img):
         image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # imreadはBGRなのでRGBに変換
@@ -249,10 +301,10 @@ class Application(tkinter.Frame):
 
     def view(self):
 
-        for name in ["original", "cherry mask", "toku mask", "shu mask", "hane mask", "masked cherry", "masked toku", "masked shu", "masked hane"]:
+        for name in self.view_en:
             if self.view_en[name] == True:
                 im_FR = cv2.vconcat([self.cam_F.pic[name], self.cam_R.pic[name]])
-                im_TB = cv2.vconcat([self.cam_T.pic[name], self.cam_B.pic[name]])
+                im_TB = cv2.vconcat([self.cam_T.pic[name], self.cam_T.pic[name]])
                 combine = cv2.hconcat([im_FR, im_TB])
                 cv2.imshow(name, combine)
 
