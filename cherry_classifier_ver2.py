@@ -1,3 +1,9 @@
+# ================================================
+# Cherry Classifier_ver2.py
+# ================================================
+# Cherry Classifier2号機 操作用プログラム
+# ------------------------------------------------
+
 import cherry_classfier as cc
 import tkinter
 import Relay
