@@ -33,10 +33,6 @@ class Application(tkinter.Frame):
     # エアー電磁弁ON時間
     sv_on_time = 0.15   # [s]
 
-    # カメラ中心-電磁弁位置 時間
-    delay_toku = 1.55 # [s]
-    delay_shu = 2.6  # [s]
-
     # ウィンドウ表示イネーブル
     view_en = { "original":False,
                 "cherry mask":False, "toku mask":False, "shu mask":False, "hane mask":False,
@@ -76,8 +72,13 @@ class Application(tkinter.Frame):
     area_min = int(original_cherry_area_min*scale*scale)
 
     # 電磁弁タスクスケジュールリスト
-    schedule_toku = []
-    schedule_shu = []
+    sche_toku = []
+    sche_shu = []
+    sche_hane = []
+    sche_error = []
+    schedule = {"":sche_error, "tokushu":sche_toku, "shu":sche_shu, "hanedashi":sche_hane}
+    sv_num = {"":0, "tokushu":1, "shu":2, "hanedashi":0}
+    delay = {"":1, "tokushu":1.55, "shu":2.6, "hanedashi":1}
     
     def __init__(self, master=None):
 
@@ -140,17 +141,18 @@ class Application(tkinter.Frame):
         th_cam_T.join()
         th_cam_R.join()
         th_cam_F.join()
+
+        # 赤道径取得
+        self.size_identification()
         
         # centerに来たら識別+エアー制御予約 (タスクリストに追加)
         for info in self.cam_F.cherry_infos:
             if info["centered"]==False and self.width/2<info["center_x"]:
-                self.identification()
-                if info["grade"] == "tokushu":
-                    self.schedule_toku.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_toku))
-                    print("detect tokushu")
-                if info["grade"] == "shu":
-                    self.schedule_shu.append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay_shu))
-                    print("detect shu")
+
+                # 等級識別+サイズ識別
+                self.grade_identification()
+                print("detect {} size:{}".format(info["grade"], info["size"]))
+                self.scheduling(info)
                 info["centered"]=True
 
         # 識別結果描画
@@ -171,19 +173,11 @@ class Application(tkinter.Frame):
         self.img_tk_R = self.cv2_to_tk(self.draw_center_line(pic_R))
         self.canvas_R.create_image(0, 0, image=self.img_tk_R, anchor='nw') # ImageTk 画像配置
 
-        del_list = []
-        # エアー制御予約の実行 (特秀)
-        for sche in self.schedule_toku:
-            if sche < datetime.datetime.now():
-                Relay.pulse_with_thread(1, self.sv_on_time)
-                self.schedule_toku.remove(sche)
-
-        del_list = []
-        # エアー制御予約の実行 (秀)
-        for sche in self.schedule_shu:
-            if sche < datetime.datetime.now():
-                Relay.pulse_with_thread(2, self.sv_on_time)
-                self.schedule_shu.remove(sche)
+        for key in self.schedule:
+            for sche in self.schedule[key]:
+                if sche < datetime.datetime.now():
+                    Relay.pulse_with_thread(self.sv_num[key], self.sv_on_time)
+                    self.schedule[key].remove(sche)
 
         self.view()
 
@@ -197,15 +191,18 @@ class Application(tkinter.Frame):
                 fps = 1/cycle_time
                 print("fps : ", str(fps))
             self.last_cycle_end = cycle_end
-        
 
+    def scheduling(self, info):
+        # スケジューリング
+        self.schedule[info["grade"]].append(datetime.datetime.now()+datetime.timedelta(seconds=self.delay[info["grade"]]))
+        
     # 等級識別
-    def identification(self):
+    def grade_identification(self):
 
         # 各等級色領域取得(マルチスレッド)
         th_cam_F = threading.Thread(target=self.cam_F.get_grade_color_area)
-        th_cam_R = threading.Thread(target=self.cam_F.get_grade_color_area)
-        th_cam_T = threading.Thread(target=self.cam_F.get_grade_color_area)
+        th_cam_R = threading.Thread(target=self.cam_R.get_grade_color_area)
+        th_cam_T = threading.Thread(target=self.cam_T.get_grade_color_area)
         th_cam_F.start()
         th_cam_R.start()
         th_cam_T.start()
@@ -240,10 +237,52 @@ class Application(tkinter.Frame):
                                 c_info_R["grade"] = grade
                                 c_info_T["grade"] = grade
 
-    # エアー制御
-    def sv_push(self, ch, on_time, delay_s):
-        time.sleep(delay_s)
-        Relay.pulse(ch, on_time)
+    def size_identification(self):
+
+        # 赤道径[pixel]取得(マルチスレッド)
+        th_cam_F = threading.Thread(target=self.cam_F.get_diameter)
+        th_cam_R = threading.Thread(target=self.cam_R.get_diameter)
+        th_cam_T = threading.Thread(target=self.cam_T.get_diameter)
+        th_cam_F.start()
+        th_cam_R.start()
+        th_cam_T.start()
+        th_cam_F.join()
+        th_cam_R.join()
+        th_cam_T.join()
+
+        # 3画面の果実のx位置が近ければ
+        for c_info_F in self.cam_F.cherry_infos:
+            for c_info_R in self.cam_R.cherry_infos:
+                for c_info_T in self.cam_T.cherry_infos:
+
+                    # 画面中央のもののみ
+                    if c_info_F["centered"]==False and self.width/2<c_info_F["center_x"]:
+
+                        if c_info_R["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_R["right"]:
+                            if c_info_T["left"]<c_info_F["center_x"] and c_info_F["center_x"]<c_info_T["right"]:
+                                pixel_list = [c_info_F["diameter_pixel"], c_info_R["diameter_pixel"], c_info_T["diameter_pixel"]]
+                                pixel_list = list(filter(None, pixel_list))
+                                
+                                c_info_T["size"]="?"
+                                c_info_F["size"]="?"
+                                c_info_R["size"]="?"
+
+                                if len(pixel_list)==0:
+                                    continue
+                                pixel = max(pixel_list)
+                                if pixel < 70:
+                                    size = "M"
+                                elif pixel < 100:
+                                    size = "L"
+                                elif pixel < 120:
+                                    size = "LL"
+
+                                c_info_T["diameter_pixel"]=pixel
+                                c_info_F["diameter_pixel"]=pixel
+                                c_info_R["diameter_pixel"]=pixel
+                                c_info_T["size"]=size
+                                c_info_F["size"]=size
+                                c_info_R["size"]=size
 
     # 画像変換 OpenCV→tkinter
     def cv2_to_tk(self, img):
@@ -270,10 +309,10 @@ class Application(tkinter.Frame):
 
     def view(self):
 
-        for name in ["original", "cherry mask", "toku mask", "shu mask", "hane mask", "masked cherry", "masked toku", "masked shu", "masked hane"]:
+        for name in self.view_en:
             if self.view_en[name] == True:
                 im_FR = cv2.vconcat([self.cam_F.pic[name], self.cam_R.pic[name]])
-                im_TB = cv2.vconcat([self.cam_T.pic[name], self.cam_B.pic[name]])
+                im_TB = cv2.vconcat([self.cam_T.pic[name], self.cam_T.pic[name]])
                 combine = cv2.hconcat([im_FR, im_TB])
                 cv2.imshow(name, combine)
 
@@ -297,7 +336,7 @@ class Application(tkinter.Frame):
 
         self.box_delay_toku_val = tkinter.StringVar()
         box_delay_toku = tkinter.Entry(self.setting_win, textvariable=self.box_delay_toku_val, width = 10, justify=tkinter.RIGHT)
-        box_delay_toku.insert(0, self.delay_toku)
+        box_delay_toku.insert(0, self.delay["tokushu"])
         box_delay_toku.grid(row=1, column=1)
 
         self.label_delay_shu = tkinter.Label(self.setting_win, text="カメラ中央-SV2時間[s]")
@@ -305,7 +344,7 @@ class Application(tkinter.Frame):
 
         self.box_delay_shu_val = tkinter.StringVar()
         box_delay_shu = tkinter.Entry(self.setting_win, textvariable=self.box_delay_shu_val, width = 10, justify=tkinter.RIGHT)
-        box_delay_shu.insert(0, self.delay_shu)
+        box_delay_shu.insert(0, self.delay["shu"])
         box_delay_shu.grid(row=2, column=1)
 
         apply_button = tkinter.Button(self.setting_win, text="適用", command=lambda:self.apply_setting())
@@ -313,8 +352,8 @@ class Application(tkinter.Frame):
 
     def apply_setting(self):
         self.sv_on_time = float(self.box_sv_on_time_val.get())
-        self.delay_toku = float(self.box_delay_toku_val.get())
-        self.delay_shu = float(self.box_delay_shu_val.get())
+        self.delay["tokushu"] = float(self.box_delay_toku_val.get())
+        self.delay["shu"] = float(self.box_delay_shu_val.get())
         self.setting_win.destroy()
 
 # 電磁弁操作
