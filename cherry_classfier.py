@@ -25,6 +25,19 @@ class Application(tkinter.Frame):
 
     # ----------------------------------------------------------------------------------------------
 
+    # 電磁弁タスクスケジュールリスト
+    sche_toku = []
+    sche_shu = []
+    sche_hane = []
+    sche_error = []
+    schedule = {"":sche_error, "tokushu":sche_toku, "shu":sche_shu, "hanedashi":sche_hane}
+
+    # 電磁弁番号
+    sv_num = {"":0, "tokushu":1, "shu":2, "hanedashi":0}
+
+    # 識別→エアー噴射 待機時間
+    delay = {"":1, "tokushu":1.55, "shu":2.6, "hanedashi":1}
+
     # カメラ番号
     oder_T = 1
     oder_F = 3
@@ -43,18 +56,17 @@ class Application(tkinter.Frame):
     draw_box_en = True
     draw_text_en = True
     draw_line_en = False
-
     print_fps_en = False
 
     # 取得画像最大サイズ
     cap_width = 1920
     cap_height = 1080
 
-    # ラベリング時しきい値(果実面積)
-    original_cherry_area_min = 50000
-
     # カメラ解像度拡大率
     scale = 0.2
+
+    # ラベリング時しきい値(果実面積)
+    original_cherry_area_min = 50000
 
     center_line_color = (0,255,0)
     center_line_thick = 2
@@ -70,15 +82,6 @@ class Application(tkinter.Frame):
     width = int(cap_width*scale)
     height = int(cap_height*scale)
     area_min = int(original_cherry_area_min*scale*scale)
-
-    # 電磁弁タスクスケジュールリスト
-    sche_toku = []
-    sche_shu = []
-    sche_hane = []
-    sche_error = []
-    schedule = {"":sche_error, "tokushu":sche_toku, "shu":sche_shu, "hanedashi":sche_hane}
-    sv_num = {"":0, "tokushu":1, "shu":2, "hanedashi":0}
-    delay = {"":1, "tokushu":1.55, "shu":2.6, "hanedashi":1}
     
     def __init__(self, master=None):
 

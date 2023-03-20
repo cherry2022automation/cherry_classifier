@@ -15,6 +15,7 @@ cc.solenoid_valve_control.sv_num = 8
 
 class Application_ver2(cc.Application):
 
+    # カメラ番号
     oder_T = 3
     oder_F = 0
     oder_R = 1
@@ -25,7 +26,11 @@ class Application_ver2(cc.Application):
     sche_LL = []
     sche_error = []
     schedule = {"":sche_error, "M":sche_M, "L":sche_L, "LL":sche_LL}
+
+    # 電磁弁番号
     sv_num = {"":0, "M":1, "L":3, "LL":5}
+
+    # 識別→エアー噴射 待機時間
     delay = {"":1, "M":1.9, "L":4, "LL":6}
 
     view_en = { "original":False,
