@@ -1,3 +1,9 @@
+# ================================================
+# Cherry Classifier.py
+# ================================================
+# Cherry Classifier 操作用プログラム
+# ------------------------------------------------
+
 import threading
 import tkinter
 import os
@@ -10,9 +16,11 @@ import Relay
 import datetime
 import solenoid_valve
 
+# 電磁弁操作クラス
 class solenoid_valve_control(solenoid_valve.solenoid_valve_control):
     sv_num = 2
 
+# メインフレーム
 class Application(tkinter.Frame):
 
     # ----------------------------------------------------------------------------------------------
@@ -308,6 +316,7 @@ class Application(tkinter.Frame):
                 combine = cv2.hconcat([im_FR, im_TB])
                 cv2.imshow(name, combine)
 
+    # 設定ウィンドウ
     def set_parameter(self):
 
         self.setting_win = tkinter.Toplevel(self)
