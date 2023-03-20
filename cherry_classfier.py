@@ -255,9 +255,9 @@ class Application(tkinter.Frame):
                                 pixel_list = [c_info_F["diameter_pixel"], c_info_R["diameter_pixel"], c_info_T["diameter_pixel"]]
                                 pixel_list = list(filter(None, pixel_list))
                                 
-                                c_info_T["size"]="?"
-                                c_info_F["size"]="?"
-                                c_info_R["size"]="?"
+                                c_info_T["size"]=""
+                                c_info_F["size"]=""
+                                c_info_R["size"]=""
 
                                 if len(pixel_list)==0:
                                     continue

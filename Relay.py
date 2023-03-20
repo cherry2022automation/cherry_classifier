@@ -11,8 +11,8 @@ import hid
 import time
 import threading
 
-# R_name = "USBRelay"     # 「USB-Relay-2」、「USB-Relay-8」とシルク印刷されているタイプ
-R_name = "HIDRelay"     # 「USB Relay QYF-UR02」とシルク印刷されているタイプ
+R_name = "USBRelay"     # 「USB-Relay-2」、「USB-Relay-8」とシルク印刷されているタイプ
+# R_name = "HIDRelay"     # 「USB Relay QYF-UR02」とシルク印刷されているタイプ
 
 class Relay():
 

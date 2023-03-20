@@ -135,7 +135,7 @@ class picture():
                             "diameter_edge2_x":None,
                             "diameter_edge2_y":None,
                             "diameter_pixel":None,
-                            "size":None,
+                            "size":"",
                             "centered":False}
 
             # 位置情報の引き継ぎ
@@ -305,7 +305,8 @@ class picture():
 
             if text==True:
                 cv2.putText(self.output_img,
-                            text="{} {}".format(c_info["grade"], c_info["size"]),
+                            text="{}".format(c_info["size"]),
+                            # text="{} {}".format(c_info["grade"], c_info["size"]),
                             org=(c_info["left"], c_info["top"]-10),
                             fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                             fontScale=self.fontscale,
